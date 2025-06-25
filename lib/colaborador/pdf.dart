@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -7,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'folio_service.dart'; // Asegúrate de tener este archivo en el mismo folder
 
 class FormularioPDF extends StatefulWidget {
   const FormularioPDF({super.key});
@@ -60,13 +59,21 @@ class _FormularioPDFState extends State<FormularioPDF> {
   final TextEditingController nombreRecibeDialogController =
       TextEditingController();
 
-  static int _folioGlobal = 2140669;
-  late int folioActual;
+  int? folioActual;
+  bool cargandoFolio = true;
 
   @override
   void initState() {
     super.initState();
-    folioActual = _folioGlobal;
+    _cargarFolio();
+  }
+
+  Future<void> _cargarFolio() async {
+    final folio = await FolioService.getNextFolio();
+    setState(() {
+      folioActual = folio;
+      cargandoFolio = false;
+    });
   }
 
   // Diálogo para firmar y capturar nombre
@@ -325,6 +332,42 @@ class _FormularioPDFState extends State<FormularioPDF> {
     );
   }
 
+  Widget _seccionConTitulo(String titulo, Widget child) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFE0E0E0),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                titulo,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+          Padding(padding: const EdgeInsets.all(12.0), child: child),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final fechaActual = DateTime.now();
@@ -334,6 +377,10 @@ class _FormularioPDFState extends State<FormularioPDF> {
         '${fechaActual.year} '
         '${fechaActual.hour.toString().padLeft(2, '0')}:'
         '${fechaActual.minute.toString().padLeft(2, '0')}';
+
+    if (cargandoFolio || folioActual == null) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ejemplo PDF Tabla')),
@@ -515,6 +562,28 @@ class _FormularioPDFState extends State<FormularioPDF> {
                 icon: const Icon(Icons.picture_as_pdf),
                 label: const Text('Guardar como PDF'),
                 onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Confirmar generación de PDF'),
+                      content: const Text(
+                        'Estás a punto de generar el PDF. ¿Está todo correcto?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text('Sí, continuar'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm != true) return;
+
                   // Carga el logo como bytes desde la ruta UNIFICADA
                   final logoBytes = await rootBundle.load(
                     'lib/assets/cafrilogo.jpg',
@@ -549,7 +618,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
                       .toList();
 
                   final pdfBytes = await PdfGenerator.generatePdf(
-                    folio: folioActual,
+                    folio: folioActual!,
                     nombreCliente: campoNombreCliente.text,
                     hablarCon: hablarcon.text,
                     identificacion: identificacion.text,
@@ -573,58 +642,22 @@ class _FormularioPDFState extends State<FormularioPDF> {
                     logoBytes: logoUint8List,
                   );
 
-                  // Incrementa el folio solo después de guardar el PDF
+                  // Actualiza el folio en Firestore y localmente
+                  await FolioService.updateFolio(folioActual!);
                   setState(() {
-                    _folioGlobal++;
-                    folioActual = _folioGlobal;
+                    folioActual = folioActual! + 1;
                   });
 
                   // El nombre del archivo PDF será Tarea(folio).pdf
                   await Printing.layoutPdf(
                     onLayout: (format) async => pdfBytes,
-                    name: 'Tarea($folioActual).pdf',
+                    name: 'Tarea(${folioActual! - 1}).pdf',
                   );
                 },
               ),
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _seccionConTitulo(String titulo, Widget child) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFE0E0E0),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(8),
-                topRight: Radius.circular(8),
-              ),
-            ),
-            child: Center(
-              child: Text(
-                titulo,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-          Padding(padding: const EdgeInsets.all(12.0), child: child),
-        ],
       ),
     );
   }
