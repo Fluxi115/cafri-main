@@ -55,6 +55,7 @@ dependencies:
   font_awesome_flutter: ^10.3.0
   printing: ^5.14.2
   open_file: ^3.2.1
+  logger: ^2.6.0
 
 dev_dependencies:
   flutter_test:
