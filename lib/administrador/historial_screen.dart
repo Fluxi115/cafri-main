@@ -56,12 +56,14 @@ class _HistorialActividadesScreenState
     if (_fechaFin != null && fecha.isAfter(_fechaFin!)) return false;
     if (_colaboradorSeleccionado != null &&
         _colaboradorSeleccionado!.isNotEmpty &&
-        data['colaborador'] != _colaboradorSeleccionado)
+        data['colaborador'] != _colaboradorSeleccionado) {
       return false;
+    }
     if (_tipoSeleccionado != null &&
         _tipoSeleccionado!.isNotEmpty &&
-        data['tipo'] != _tipoSeleccionado)
+        data['tipo'] != _tipoSeleccionado) {
       return false;
+    }
     return true;
   }
 

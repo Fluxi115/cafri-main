@@ -1,3 +1,5 @@
+// lib/colaborador/colaborador_actividades.dart
+
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
@@ -16,56 +18,6 @@ class ColaboradorActividades extends StatelessWidget {
         .orderBy('estado')
         .orderBy('fecha')
         .snapshots();
-  }
-
-  /// Agrega un registro de pausa al array 'pausas' y cambia el estado a 'pausada'
-  Future<void> pausarActividad(String docId) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('actividades')
-        .doc(docId);
-
-    // Guardar la fecha/hora localmente para tenerla como string legible
-    final now = DateTime.now();
-    final fechaLegible =
-        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-
-    await docRef.update({
-      'estado': 'pausada',
-      'pausas': FieldValue.arrayUnion([
-        {
-          'pausado': FieldValue.serverTimestamp(),
-          'pausado_str': fechaLegible,
-          'reanudado': null,
-          'reanudado_str': null,
-        },
-      ]),
-    });
-  }
-
-  /// Actualiza el último registro de pausa con la hora de reanudación y cambia el estado a 'en_proceso'
-  Future<void> reanudarActividad(String docId) async {
-    final docRef = FirebaseFirestore.instance
-        .collection('actividades')
-        .doc(docId);
-    final docSnap = await docRef.get();
-    final data = docSnap.data() as Map<String, dynamic>;
-    final pausas = List<Map<String, dynamic>>.from(data['pausas'] ?? []);
-    if (pausas.isNotEmpty && pausas.last['reanudado'] == null) {
-      final now = DateTime.now();
-      final fechaLegible =
-          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-      pausas[pausas.length - 1]['reanudado'] = Timestamp.now();
-      pausas[pausas.length - 1]['reanudado_str'] = fechaLegible;
-      await docRef.update({'estado': 'en_proceso', 'pausas': pausas});
-    } else {
-      // Si no hay pausa pendiente, solo cambia el estado
-      await docRef.update({'estado': 'en_proceso'});
-    }
-  }
-
-  /// Formatea la hora en formato HH:mm
-  String formatHora(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -226,46 +178,6 @@ class ColaboradorActividades extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Mostrar historial de pausas si está pausada y hay pausas
-                    if ((actividad['pausas'] ?? []).isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Historial de pausas:',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            ...List.generate((actividad['pausas'] as List).length, (
-                              i,
-                            ) {
-                              final pausa = actividad['pausas'][i];
-                              String texto = '';
-                              if (pausa['pausado'] != null &&
-                                  pausa['pausado'] is Timestamp) {
-                                final pausado = (pausa['pausado'] as Timestamp)
-                                    .toDate();
-                                texto +=
-                                    'Pausado el ${pausado.day.toString().padLeft(2, '0')}/${pausado.month.toString().padLeft(2, '0')}/${pausado.year} a las ${formatHora(pausado)}';
-                              } else if (pausa['pausado_str'] != null) {
-                                texto += 'Pausado el ${pausa['pausado_str']}';
-                              }
-                              if (pausa['reanudado'] != null &&
-                                  pausa['reanudado'] is Timestamp) {
-                                final reanudado =
-                                    (pausa['reanudado'] as Timestamp).toDate();
-                                texto +=
-                                    ' - Reanudado el ${reanudado.day.toString().padLeft(2, '0')}/${reanudado.month.toString().padLeft(2, '0')}/${reanudado.year} a las ${formatHora(reanudado)}';
-                              } else if (pausa['reanudado_str'] != null) {
-                                texto +=
-                                    ' - Reanudado el ${pausa['reanudado_str']}';
-                              }
-                              return Text(texto);
-                            }),
-                          ],
-                        ),
-                      ),
                     if (esColaboradorAsignado)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -318,7 +230,10 @@ class ColaboradorActividades extends StatelessWidget {
                                   backgroundColor: Colors.deepOrange,
                                 ),
                                 onPressed: () async {
-                                  await pausarActividad(docId);
+                                  await FirebaseFirestore.instance
+                                      .collection('actividades')
+                                      .doc(docId)
+                                      .update({'estado': 'pausada'});
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Actividad pausada'),
@@ -353,7 +268,10 @@ class ColaboradorActividades extends StatelessWidget {
                                   backgroundColor: Colors.amber,
                                 ),
                                 onPressed: () async {
-                                  await reanudarActividad(docId);
+                                  await FirebaseFirestore.instance
+                                      .collection('actividades')
+                                      .doc(docId)
+                                      .update({'estado': 'en_proceso'});
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text('Actividad reanudada'),
