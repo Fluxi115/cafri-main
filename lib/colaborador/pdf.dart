@@ -7,27 +7,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:signature/signature.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'folio_service.dart'; // Asegúrate de tener este archivo en el mismo folder
+import 'folio_service.dart';
 
-class FormularioPDF extends StatefulWidget {
-  const FormularioPDF({super.key});
-
-  @override
-  State<FormularioPDF> createState() => _FormularioPDFState();
-}
-
-class _FormularioPDFState extends State<FormularioPDF> {
-  // Controladores de texto para los campos principales
-  final TextEditingController campoNombreCliente = TextEditingController();
-  final TextEditingController hablarcon = TextEditingController();
-  final TextEditingController identificacion = TextEditingController();
+// Modelo para una hoja/formulario individual (excepto datos de cliente)
+class HojaServicioData {
   final TextEditingController actividadParaController = TextEditingController();
   final TextEditingController actividadTipoTareaController =
       TextEditingController();
   final TextEditingController descripcionTareaController =
       TextEditingController();
-  final TextEditingController tipoSistemaController = TextEditingController();
-  final TextEditingController tecnologiaController = TextEditingController();
   final TextEditingController modeloEvaporadorController =
       TextEditingController();
   final TextEditingController serieEvaporadorController =
@@ -37,13 +25,16 @@ class _FormularioPDFState extends State<FormularioPDF> {
   final TextEditingController descripcionTrabajoRealizadoController =
       TextEditingController();
 
-  // Listas para fotos de inicio, proceso y fin del servicio
   final List<FotoDescripcionItem> fotosMantenimientoInicio = [];
   final List<FotoDescripcionItem> fotosMantenimientoProceso = [];
   final List<FotoDescripcionItem> fotosMantenimientoFin = [];
   final List<Uint8List> imagenesEvaporadores = [];
 
-  // Controladores y datos para firmas y nombres
+  Uint8List? firmaTecnico;
+  Uint8List? firmaRecibe;
+  String? nombreTecnico;
+  String? nombreRecibe;
+
   final SignatureController firmaTecnicoController = SignatureController(
     penStrokeWidth: 3,
     penColor: Colors.black,
@@ -52,14 +43,120 @@ class _FormularioPDFState extends State<FormularioPDF> {
     penStrokeWidth: 3,
     penColor: Colors.black,
   );
-  Uint8List? firmaTecnico;
-  Uint8List? firmaRecibe;
-  String? nombreTecnico;
-  String? nombreRecibe;
   final TextEditingController nombreTecnicoDialogController =
       TextEditingController();
   final TextEditingController nombreRecibeDialogController =
       TextEditingController();
+
+  void dispose() {
+    actividadParaController.dispose();
+    actividadTipoTareaController.dispose();
+    descripcionTareaController.dispose();
+    modeloEvaporadorController.dispose();
+    serieEvaporadorController.dispose();
+    capacidadEvaporadorController.dispose();
+    descripcionTrabajoRealizadoController.dispose();
+    firmaTecnicoController.dispose();
+    firmaRecibeController.dispose();
+    nombreTecnicoDialogController.dispose();
+    nombreRecibeDialogController.dispose();
+    for (final f in fotosMantenimientoInicio) {
+      f.descripcionController.dispose();
+    }
+    for (final f in fotosMantenimientoProceso) {
+      f.descripcionController.dispose();
+    }
+    for (final f in fotosMantenimientoFin) {
+      f.descripcionController.dispose();
+    }
+  }
+
+  void clear() {
+    actividadParaController.clear();
+    actividadTipoTareaController.clear();
+    descripcionTareaController.clear();
+    modeloEvaporadorController.clear();
+    serieEvaporadorController.clear();
+    capacidadEvaporadorController.clear();
+    descripcionTrabajoRealizadoController.clear();
+    firmaTecnico = null;
+    firmaRecibe = null;
+    nombreTecnico = null;
+    nombreRecibe = null;
+    firmaTecnicoController.clear();
+    firmaRecibeController.clear();
+    nombreTecnicoDialogController.clear();
+    nombreRecibeDialogController.clear();
+    for (final f in fotosMantenimientoInicio) {
+      f.descripcionController.clear();
+    }
+    for (final f in fotosMantenimientoProceso) {
+      f.descripcionController.clear();
+    }
+    for (final f in fotosMantenimientoFin) {
+      f.descripcionController.clear();
+    }
+    fotosMantenimientoInicio.clear();
+    fotosMantenimientoProceso.clear();
+    fotosMantenimientoFin.clear();
+    imagenesEvaporadores.clear();
+  }
+
+  Map<String, dynamic> toMap() => {
+    'para': actividadParaController.text,
+    'tipoTarea': actividadTipoTareaController.text,
+    'descripcionTarea': descripcionTareaController.text,
+    'modeloEvaporador': modeloEvaporadorController.text,
+    'serieEvaporador': serieEvaporadorController.text,
+    'capacidadEvaporador': capacidadEvaporadorController.text,
+    'descripcionTrabajoRealizado': descripcionTrabajoRealizadoController.text,
+    'fotosInicio': fotosMantenimientoInicio
+        .map(
+          (f) => {
+            'bytes': f.imageBytes,
+            'descripcion': f.descripcionController.text,
+          },
+        )
+        .toList(),
+    'fotosProceso': fotosMantenimientoProceso
+        .map(
+          (f) => {
+            'bytes': f.imageBytes,
+            'descripcion': f.descripcionController.text,
+          },
+        )
+        .toList(),
+    'fotosFin': fotosMantenimientoFin
+        .map(
+          (f) => {
+            'bytes': f.imageBytes,
+            'descripcion': f.descripcionController.text,
+          },
+        )
+        .toList(),
+    'imagenesEvaporadores': imagenesEvaporadores,
+    'firmaTecnico': firmaTecnico,
+    'nombreTecnico': nombreTecnico,
+    'firmaRecibe': firmaRecibe,
+    'nombreRecibe': nombreRecibe,
+  };
+}
+
+class FormularioPDF extends StatefulWidget {
+  const FormularioPDF({super.key});
+
+  @override
+  State<FormularioPDF> createState() => _FormularioPDFState();
+}
+
+class _FormularioPDFState extends State<FormularioPDF> {
+  // Campos de cliente (únicos)
+  final TextEditingController campoNombreCliente = TextEditingController();
+  final TextEditingController hablarcon = TextEditingController();
+  final TextEditingController identificacion = TextEditingController();
+
+  // Lista dinámica de hojas (formularios)
+  final List<HojaServicioData> hojas = [HojaServicioData()];
 
   int? folioActual;
   bool cargandoFolio = true;
@@ -70,6 +167,17 @@ class _FormularioPDFState extends State<FormularioPDF> {
     _cargarFolio();
   }
 
+  @override
+  void dispose() {
+    for (final hoja in hojas) {
+      hoja.dispose();
+    }
+    campoNombreCliente.dispose();
+    hablarcon.dispose();
+    identificacion.dispose();
+    super.dispose();
+  }
+
   Future<void> _cargarFolio() async {
     final folio = await FolioService.getNextFolio();
     setState(() {
@@ -78,156 +186,198 @@ class _FormularioPDFState extends State<FormularioPDF> {
     });
   }
 
-  // Diálogo para firmar y capturar nombre
-  Future<void> _firmar(
-    SignatureController controller,
-    String titulo,
-    TextEditingController nombreController,
-    bool esTecnico,
-  ) async {
-    if (esTecnico && nombreTecnico != null) {
-      nombreController.text = nombreTecnico!;
-    } else if (!esTecnico && nombreRecibe != null) {
-      nombreController.text = nombreRecibe!;
+  void _limpiarFormulario() {
+    campoNombreCliente.clear();
+    hablarcon.clear();
+    identificacion.clear();
+    for (final hoja in hojas) {
+      hoja.dispose();
     }
+    hojas
+      ..clear()
+      ..add(HojaServicioData());
+  }
 
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(titulo),
-          content: SizedBox(
-            width: MediaQuery.of(context).size.width * 0.8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 200,
-                  child: Signature(
-                    controller: controller,
-                    backgroundColor: Colors.white,
+  Widget _hojasWidget() {
+    return Column(
+      children: [
+        ...hojas.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final hoja = entry.value;
+          return Card(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Hoja ${idx + 1}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      if (hojas.length > 1)
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              hoja.dispose();
+                              hojas.removeAt(idx);
+                            });
+                          },
+                        ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => controller.clear(),
-              child: const Text('Limpiar'),
-            ),
-            TextButton(
-              onPressed: () async {
-                if (controller.isNotEmpty &&
-                    nombreController.text.trim().isNotEmpty) {
-                  final signature = await controller.toPngBytes();
-                  Navigator.of(context).pop({
-                    'firma': signature,
-                    'nombre': nombreController.text.trim(),
-                  });
-                }
-              },
-              child: const Text('Guardar'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancelar'),
-            ),
-          ],
-        );
-      },
-    );
-    if (result != null) {
-      setState(() {
-        if (esTecnico) {
-          firmaTecnico = result['firma'];
-          nombreTecnico = result['nombre'];
-        } else {
-          firmaRecibe = result['firma'];
-          nombreRecibe = result['nombre'];
-        }
-      });
-    }
-  }
-
-  void _eliminarFirma(bool esTecnico) {
-    setState(() {
-      if (esTecnico) {
-        firmaTecnico = null;
-        nombreTecnico = null;
-        firmaTecnicoController.clear();
-        nombreTecnicoDialogController.clear();
-      } else {
-        firmaRecibe = null;
-        nombreRecibe = null;
-        firmaRecibeController.clear();
-        nombreRecibeDialogController.clear();
-      }
-    });
-  }
-
-  // Encabezado con logo y datos empresariales
-  Widget _encabezadoCafri() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              "lib/assets/cafrilogo.jpg",
-              width: 80,
-              height: 80,
-              fit: BoxFit.contain,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'HOJA DE SERVICIO',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    letterSpacing: 1.2,
+                  // Actividades
+                  TextField(
+                    controller: hoja.actividadParaController,
+                    decoration: const InputDecoration(labelText: 'Para'),
                   ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V.',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                SizedBox(height: 4),
-                Text('Teléfono: (999) 102 1232'),
-                Text('Número de identificación empresarial: AAF2306305G0'),
-                Text('Email: contacto@cafrimx.com'),
-                Text(
-                  'Dirección: C. 59K N°537 POR 112 Y 114 COL. BOJORQUEZ C.P 97230',
-                ),
-              ],
+                  TextField(
+                    controller: hoja.actividadTipoTareaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo de tarea',
+                    ),
+                  ),
+                  TextField(
+                    controller: hoja.descripcionTareaController,
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción de la tarea',
+                    ),
+                    maxLines: 2,
+                  ),
+                  // Modelo, serie, capacidad
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: hoja.modeloEvaporadorController,
+                          decoration: const InputDecoration(
+                            labelText: 'Modelo',
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: hoja.serieEvaporadorController,
+                          decoration: const InputDecoration(labelText: 'Serie'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: hoja.capacidadEvaporadorController,
+                          decoration: const InputDecoration(
+                            labelText: 'Capacidad',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Imágenes de evaporadores
+                  _imagenesEvaporadoresWidget(hoja),
+                  const SizedBox(height: 8),
+                  // Fotos inicio/proceso/fin
+                  FotoDescripcionLista(
+                    encabezadoFoto: 'Foto inicio',
+                    encabezadoDescripcion: 'Descripción',
+                    items: hoja.fotosMantenimientoInicio,
+                    onAdd: (item) =>
+                        setState(() => hoja.fotosMantenimientoInicio.add(item)),
+                    onRemove: (idx) => setState(
+                      () => hoja.fotosMantenimientoInicio.removeAt(idx),
+                    ),
+                  ),
+                  FotoDescripcionLista(
+                    encabezadoFoto: 'Foto proceso',
+                    encabezadoDescripcion: 'Descripción',
+                    items: hoja.fotosMantenimientoProceso,
+                    onAdd: (item) => setState(
+                      () => hoja.fotosMantenimientoProceso.add(item),
+                    ),
+                    onRemove: (idx) => setState(
+                      () => hoja.fotosMantenimientoProceso.removeAt(idx),
+                    ),
+                  ),
+                  FotoDescripcionLista(
+                    encabezadoFoto: 'Foto fin',
+                    encabezadoDescripcion: 'Descripción',
+                    items: hoja.fotosMantenimientoFin,
+                    onAdd: (item) =>
+                        setState(() => hoja.fotosMantenimientoFin.add(item)),
+                    onRemove: (idx) => setState(
+                      () => hoja.fotosMantenimientoFin.removeAt(idx),
+                    ),
+                  ),
+                  // Descripción trabajo realizado
+                  TextField(
+                    controller: hoja.descripcionTrabajoRealizadoController,
+                    decoration: const InputDecoration(
+                      labelText: 'Descripción del trabajo realizado',
+                    ),
+                    maxLines: 3,
+                  ),
+                  // Firmas
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _firmaWidget(
+                          titulo: 'Firma del técnico',
+                          firma: hoja.firmaTecnico,
+                          nombre: hoja.nombreTecnico,
+                          onFirmar: () => _firmar(
+                            hoja.firmaTecnicoController,
+                            'Firma del técnico',
+                            hoja.nombreTecnicoDialogController,
+                            true,
+                            hoja,
+                          ),
+                          onEliminar: () => _eliminarFirma(true, hoja),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _firmaWidget(
+                          titulo: 'Firma de quien recibe',
+                          firma: hoja.firmaRecibe,
+                          nombre: hoja.nombreRecibe,
+                          onFirmar: () => _firmar(
+                            hoja.firmaRecibeController,
+                            'Firma de quien recibe',
+                            hoja.nombreRecibeDialogController,
+                            false,
+                            hoja,
+                          ),
+                          onEliminar: () => _eliminarFirma(false, hoja),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+          );
+        }),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Agregar otra hoja'),
+            onPressed: () {
+              setState(() {
+                hojas.add(HojaServicioData());
+              });
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
-  Widget _imagenesEvaporadoresWidget() {
+  Widget _imagenesEvaporadoresWidget(HojaServicioData hoja) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -240,7 +390,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ...imagenesEvaporadores.map(
+            ...hoja.imagenesEvaporadores.map(
               (imgBytes) => Stack(
                 alignment: Alignment.topRight,
                 children: [
@@ -257,7 +407,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
                     icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
                     onPressed: () {
                       setState(() {
-                        imagenesEvaporadores.remove(imgBytes);
+                        hoja.imagenesEvaporadores.remove(imgBytes);
                       });
                     },
                   ),
@@ -273,7 +423,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
                 if (picked != null) {
                   final bytes = await picked.readAsBytes();
                   setState(() {
-                    imagenesEvaporadores.add(bytes);
+                    hoja.imagenesEvaporadores.add(bytes);
                   });
                 }
               },
@@ -331,6 +481,154 @@ class _FormularioPDFState extends State<FormularioPDF> {
             onPressed: onFirmar,
           ),
       ],
+    );
+  }
+
+  Future<void> _firmar(
+    SignatureController controller,
+    String titulo,
+    TextEditingController nombreController,
+    bool esTecnico,
+    HojaServicioData hoja,
+  ) async {
+    if (esTecnico && hoja.nombreTecnico != null) {
+      nombreController.text = hoja.nombreTecnico!;
+    } else if (!esTecnico && hoja.nombreRecibe != null) {
+      nombreController.text = hoja.nombreRecibe!;
+    }
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(titulo),
+          content: SizedBox(
+            width: MediaQuery.of(context).size.width * 0.8,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nombreController,
+                  decoration: const InputDecoration(labelText: 'Nombre'),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 200,
+                  child: Signature(
+                    controller: controller,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => controller.clear(),
+              child: const Text('Limpiar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                if (controller.isNotEmpty &&
+                    nombreController.text.trim().isNotEmpty) {
+                  final signature = await controller.toPngBytes();
+                  Navigator.of(context).pop({
+                    'firma': signature,
+                    'nombre': nombreController.text.trim(),
+                  });
+                }
+              },
+              child: const Text('Guardar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+    if (result != null) {
+      setState(() {
+        if (esTecnico) {
+          hoja.firmaTecnico = result['firma'];
+          hoja.nombreTecnico = result['nombre'];
+        } else {
+          hoja.firmaRecibe = result['firma'];
+          hoja.nombreRecibe = result['nombre'];
+        }
+      });
+    }
+  }
+
+  void _eliminarFirma(bool esTecnico, HojaServicioData hoja) {
+    setState(() {
+      if (esTecnico) {
+        hoja.firmaTecnico = null;
+        hoja.nombreTecnico = null;
+        hoja.firmaTecnicoController.clear();
+        hoja.nombreTecnicoDialogController.clear();
+      } else {
+        hoja.firmaRecibe = null;
+        hoja.nombreRecibe = null;
+        hoja.firmaRecibeController.clear();
+        hoja.nombreRecibeDialogController.clear();
+      }
+    });
+  }
+
+  Widget _encabezadoCafri() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.asset(
+              "lib/assets/cafrilogo.jpg",
+              width: 80,
+              height: 80,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'HOJA DE SERVICIO',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V.',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                SizedBox(height: 4),
+                Text('Teléfono: (999) 102 1232'),
+                Text('Número de identificación empresarial: AAF2306305G0'),
+                Text('Email: contacto@cafrimx.com'),
+                Text(
+                  'Dirección: C. 59K N°537 POR 112 Y 114 COL. BOJORQUEZ C.P 97230',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -392,7 +690,6 @@ class _FormularioPDFState extends State<FormularioPDF> {
           child: Column(
             children: [
               _encabezadoCafri(),
-              // Folio autoincremental (solo lectura)
               Row(
                 children: [
                   const Text(
@@ -421,144 +718,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
                 decoration: const InputDecoration(labelText: 'Identificación'),
               ),
               const SizedBox(height: 16),
-              _seccionConTitulo(
-                'Información de las actividades',
-                Column(
-                  children: [
-                    TextField(
-                      controller: actividadParaController,
-                      decoration: const InputDecoration(labelText: 'Para'),
-                    ),
-                    TextField(
-                      controller: actividadTipoTareaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tipo de tarea',
-                      ),
-                    ),
-                    TextField(
-                      controller: descripcionTareaController,
-                      decoration: const InputDecoration(
-                        labelText: 'Descripción de la tarea',
-                      ),
-                      maxLines: 2,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              _seccionConTitulo(
-                'MODELO, SERIE, CAPACIDAD DE CONDENSADORES',
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: modeloEvaporadorController,
-                        decoration: const InputDecoration(labelText: 'Modelo'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: serieEvaporadorController,
-                        decoration: const InputDecoration(labelText: 'Serie'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextField(
-                        controller: capacidadEvaporadorController,
-                        decoration: const InputDecoration(
-                          labelText: 'Capacidad',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              _imagenesEvaporadoresWidget(),
-              const SizedBox(height: 16),
-              _seccionConTitulo(
-                'Fotos de inicio del servicio',
-                FotoDescripcionLista(
-                  encabezadoFoto: 'Foto',
-                  encabezadoDescripcion: 'Descripción',
-                  items: fotosMantenimientoInicio,
-                  onAdd: (item) =>
-                      setState(() => fotosMantenimientoInicio.add(item)),
-                  onRemove: (idx) =>
-                      setState(() => fotosMantenimientoInicio.removeAt(idx)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _seccionConTitulo(
-                'Fotos de proceso del servicio',
-                FotoDescripcionLista(
-                  encabezadoFoto: 'Foto',
-                  encabezadoDescripcion: 'Descripción',
-                  items: fotosMantenimientoProceso,
-                  onAdd: (item) =>
-                      setState(() => fotosMantenimientoProceso.add(item)),
-                  onRemove: (idx) =>
-                      setState(() => fotosMantenimientoProceso.removeAt(idx)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _seccionConTitulo(
-                'Fotos de fin del servicio',
-                FotoDescripcionLista(
-                  encabezadoFoto: 'Foto',
-                  encabezadoDescripcion: 'Descripción',
-                  items: fotosMantenimientoFin,
-                  onAdd: (item) =>
-                      setState(() => fotosMantenimientoFin.add(item)),
-                  onRemove: (idx) =>
-                      setState(() => fotosMantenimientoFin.removeAt(idx)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _seccionConTitulo(
-                'Descripción del trabajo realizado',
-                TextField(
-                  controller: descripcionTrabajoRealizadoController,
-                  decoration: const InputDecoration(labelText: 'Descripción'),
-                  maxLines: 3,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _firmaWidget(
-                      titulo: 'Firma del técnico',
-                      firma: firmaTecnico,
-                      nombre: nombreTecnico,
-                      onFirmar: () => _firmar(
-                        firmaTecnicoController,
-                        'Firma del técnico',
-                        nombreTecnicoDialogController,
-                        true,
-                      ),
-                      onEliminar: () => _eliminarFirma(true),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _firmaWidget(
-                      titulo: 'Firma de quien recibe',
-                      firma: firmaRecibe,
-                      nombre: nombreRecibe,
-                      onFirmar: () => _firmar(
-                        firmaRecibeController,
-                        'Firma de quien recibe',
-                        nombreRecibeDialogController,
-                        false,
-                      ),
-                      onEliminar: () => _eliminarFirma(false),
-                    ),
-                  ),
-                ],
-              ),
+              _seccionConTitulo('Hojas de servicio', _hojasWidget()),
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 icon: const Icon(Icons.picture_as_pdf),
@@ -586,71 +746,29 @@ class _FormularioPDFState extends State<FormularioPDF> {
 
                   if (confirm != true) return;
 
-                  // Carga el logo como bytes desde la ruta UNIFICADA
                   final logoBytes = await rootBundle.load(
                     'lib/assets/cafrilogo.jpg',
                   );
                   final logoUint8List = logoBytes.buffer.asUint8List();
 
-                  List<Map<String, dynamic>> fotosInicio =
-                      fotosMantenimientoInicio
-                          .map(
-                            (item) => {
-                              'bytes': item.imageBytes,
-                              'descripcion': item.descripcionController.text,
-                            },
-                          )
-                          .toList();
-                  List<Map<String, dynamic>> fotosProceso =
-                      fotosMantenimientoProceso
-                          .map(
-                            (item) => {
-                              'bytes': item.imageBytes,
-                              'descripcion': item.descripcionController.text,
-                            },
-                          )
-                          .toList();
-                  List<Map<String, dynamic>> fotosFin = fotosMantenimientoFin
-                      .map(
-                        (item) => {
-                          'bytes': item.imageBytes,
-                          'descripcion': item.descripcionController.text,
-                        },
-                      )
-                      .toList();
+                  final hojasList = hojas.map((h) => h.toMap()).toList();
 
                   final pdfBytes = await PdfGenerator.generatePdf(
                     folio: folioActual!,
                     nombreCliente: campoNombreCliente.text,
                     hablarCon: hablarcon.text,
                     identificacion: identificacion.text,
-                    actividadPara: actividadParaController.text,
-                    actividadTipoTarea: actividadTipoTareaController.text,
-                    descripcionTarea: descripcionTareaController.text,
-                    modeloEvaporador: modeloEvaporadorController.text,
-                    serieEvaporador: serieEvaporadorController.text,
-                    capacidadEvaporador: capacidadEvaporadorController.text,
-                    descripcionTrabajoRealizado:
-                        descripcionTrabajoRealizadoController.text,
-                    fotosInicio: fotosInicio,
-                    fotosProceso: fotosProceso,
-                    fotosFin: fotosFin,
-                    imagenesEvaporadores: imagenesEvaporadores,
-                    firmaTecnico: firmaTecnico,
-                    nombreTecnico: nombreTecnico,
-                    firmaRecibe: firmaRecibe,
-                    nombreRecibe: nombreRecibe,
+                    hojas: hojasList,
                     fechaFormateada: fechaFormateada,
                     logoBytes: logoUint8List,
                   );
 
-                  // Actualiza el folio en Firestore y localmente
                   await FolioService.updateFolio(folioActual!);
                   setState(() {
                     folioActual = folioActual! + 1;
+                    _limpiarFormulario();
                   });
 
-                  // El nombre del archivo PDF será Tarea(folio).pdf
                   await Printing.layoutPdf(
                     onLayout: (format) async => pdfBytes,
                     name: 'Tarea(${folioActual! - 1}).pdf',
@@ -785,43 +903,26 @@ class FotoDescripcionItem {
   });
 }
 
-// Generador de PDF
+// Generador de PDF multipágina
 class PdfGenerator {
   static Future<Uint8List> generatePdf({
     required int folio,
     required String nombreCliente,
     required String hablarCon,
     required String identificacion,
-    required String actividadPara,
-    required String actividadTipoTarea,
-    required String descripcionTarea,
-    required String modeloEvaporador,
-    required String serieEvaporador,
-    required String capacidadEvaporador,
-    required String descripcionTrabajoRealizado,
-    required List<Map<String, dynamic>> fotosInicio,
-    required List<Map<String, dynamic>> fotosProceso,
-    required List<Map<String, dynamic>> fotosFin,
-    required List<Uint8List> imagenesEvaporadores,
-    Uint8List? firmaTecnico,
-    String? nombreTecnico,
-    Uint8List? firmaRecibe,
-    String? nombreRecibe,
+    required List<Map<String, dynamic>> hojas,
     required String fechaFormateada,
     required Uint8List logoBytes,
   }) async {
     final pdf = pw.Document();
 
-    pw.Widget buildFotoDescripcion(
-      List<Map<String, dynamic>> fotos,
-      String titulo,
-    ) {
+    pw.Widget buildFotoDescripcion(List fotos, String titulo) {
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(titulo, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
-          ...fotos.map(
+          ...fotos.map<pw.Widget>(
             (foto) => pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -844,13 +945,13 @@ class PdfGenerator {
       );
     }
 
-    pw.Widget buildImagenesEvaporadores(List<Uint8List> imagenes) {
+    pw.Widget buildImagenesEvaporadores(List imagenes) {
       if (imagenes.isEmpty) return pw.Text('No hay imágenes agregadas.');
       return pw.Wrap(
         spacing: 8,
         runSpacing: 8,
         children: imagenes
-            .map(
+            .map<pw.Widget>(
               (imgBytes) => pw.Container(
                 width: 150,
                 height: 150,
@@ -861,188 +962,210 @@ class PdfGenerator {
       );
     }
 
-    pdf.addPage(
-      pw.MultiPage(
-        build: (context) => [
-          // Encabezado con logo y datos empresariales
-          pw.Row(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Container(
-                width: 80,
-                height: 80,
-                child: pw.Image(
-                  pw.MemoryImage(logoBytes),
-                  fit: pw.BoxFit.contain,
+    // Cada hoja será una página en el PDF
+    for (final hoja in hojas) {
+      pdf.addPage(
+        pw.MultiPage(
+          build: (context) => [
+            // Encabezado con logo y datos empresariales
+            pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Container(
+                  width: 80,
+                  height: 80,
+                  child: pw.Image(
+                    pw.MemoryImage(logoBytes),
+                    fit: pw.BoxFit.contain,
+                  ),
                 ),
-              ),
-              pw.SizedBox(width: 16),
-              pw.Expanded(
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                pw.SizedBox(width: 16),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'HOJA DE SERVICIO',
+                        style: pw.TextStyle(
+                          fontSize: 18,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V.',
+                      ),
+                      pw.Text('Teléfono: (999) 102 1232'),
+                      pw.Text(
+                        'Número de identificación empresarial: AAF2306305G0',
+                      ),
+                      pw.Text('Email: contacto@cafrimx.com'),
+                      pw.Text(
+                        'Dirección: C. 59K N°537 POR 112 Y 114 COL. BOJORQUEZ C.P 97230',
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 8),
+            pw.Text('Fecha: $fechaFormateada'),
+            pw.Text(
+              'Folio (Tarea): $folio',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Divider(),
+
+            pw.Text(
+              'Información del cliente',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text('Nombre del cliente: $nombreCliente'),
+            pw.Text('Hablar con: $hablarCon'),
+            pw.Text('Identificación: $identificacion'),
+            pw.SizedBox(height: 8),
+
+            pw.Text(
+              'Información de las actividades',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text('Para: ${hoja['para'] ?? ''}'),
+            pw.Text('Tipo de tarea: ${hoja['tipoTarea'] ?? ''}'),
+            pw.Text(
+              'Descripción de la tarea: ${hoja['descripcionTarea'] ?? ''}',
+            ),
+            pw.SizedBox(height: 8),
+
+            pw.Text(
+              'MODELO, SERIE, CAPACIDAD DE CONDENSADORES',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Table(
+              border: pw.TableBorder.all(),
+              children: [
+                pw.TableRow(
                   children: [
-                    pw.Text(
-                      'HOJA DE SERVICIO',
-                      style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(
+                        'Modelo',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                       ),
                     ),
-                    pw.Text(
-                      'COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V.',
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(
+                        'Serie',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
                     ),
-                    pw.Text('Teléfono: (999) 102 1232'),
-                    pw.Text(
-                      'Número de identificación empresarial: AAF2306305G0',
-                    ),
-                    pw.Text('Email: contacto@cafrimx.com'),
-                    pw.Text(
-                      'Dirección: C. 59K N°537 POR 112 Y 114 COL. BOJORQUEZ C.P 97230',
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(
+                        'Capacidad',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 8),
-          pw.Text('Fecha: $fechaFormateada'),
-          pw.Text(
-            'Folio (Tarea): $folio',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Divider(),
-
-          pw.Text(
-            'Información del cliente',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text('Nombre del cliente: $nombreCliente'),
-          pw.Text('Hablar con: $hablarCon'),
-          pw.Text('Identificación: $identificacion'),
-          pw.SizedBox(height: 8),
-
-          pw.Text(
-            'Información de las actividades',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text('Para: $actividadPara'),
-          pw.Text('Tipo de tarea: $actividadTipoTarea'),
-          pw.Text('Descripción de la tarea: $descripcionTarea'),
-          pw.SizedBox(height: 8),
-
-          pw.Text(
-            'MODELO, SERIE, CAPACIDAD DE CONDENSADORES',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Table(
-            border: pw.TableBorder.all(),
-            children: [
-              pw.TableRow(
-                children: [
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(
-                      'Modelo',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(
-                      'Serie',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(
-                      'Capacidad',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-              pw.TableRow(
-                children: [
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(modeloEvaporador),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(serieEvaporador),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(4),
-                    child: pw.Text(capacidadEvaporador),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 8),
-
-          pw.Text(
-            'Imágenes de evaporadores/condensadores',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          buildImagenesEvaporadores(imagenesEvaporadores),
-          pw.SizedBox(height: 8),
-
-          buildFotoDescripcion(fotosInicio, 'Fotos de inicio del servicio'),
-          buildFotoDescripcion(fotosProceso, 'Fotos de proceso del servicio'),
-          buildFotoDescripcion(fotosFin, 'Fotos de fin del servicio'),
-
-          pw.Text(
-            'Descripción del trabajo realizado',
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-          pw.Text(descripcionTrabajoRealizado),
-          pw.SizedBox(height: 12),
-
-          pw.Row(
-            children: [
-              pw.Expanded(
-                child: pw.Column(
+                pw.TableRow(
                   children: [
-                    pw.Text(
-                      'Firma del técnico',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(hoja['modeloEvaporador'] ?? ''),
                     ),
-                    if (firmaTecnico != null)
-                      pw.Image(pw.MemoryImage(firmaTecnico), height: 150),
-                    if (nombreTecnico != null) pw.Text(nombreTecnico),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(hoja['serieEvaporador'] ?? ''),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(4),
+                      child: pw.Text(hoja['capacidadEvaporador'] ?? ''),
+                    ),
                   ],
                 ),
-              ),
-              pw.Expanded(
-                child: pw.Column(
-                  children: [
-                    pw.Text(
-                      'Firma de quien recibe',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                    ),
-                    if (firmaRecibe != null)
-                      pw.Image(pw.MemoryImage(firmaRecibe), height: 150),
-                    if (nombreRecibe != null) pw.Text(nombreRecibe),
-                  ],
+              ],
+            ),
+            pw.SizedBox(height: 8),
+
+            pw.Text(
+              'Imágenes de evaporadores/condensadores',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            buildImagenesEvaporadores(hoja['imagenesEvaporadores'] ?? []),
+            pw.SizedBox(height: 8),
+
+            buildFotoDescripcion(
+              hoja['fotosInicio'] ?? [],
+              'Fotos de inicio del servicio',
+            ),
+            buildFotoDescripcion(
+              hoja['fotosProceso'] ?? [],
+              'Fotos de proceso del servicio',
+            ),
+            buildFotoDescripcion(
+              hoja['fotosFin'] ?? [],
+              'Fotos de fin del servicio',
+            ),
+
+            pw.Text(
+              'Descripción del trabajo realizado',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.Text(hoja['descripcionTrabajoRealizado'] ?? ''),
+            pw.SizedBox(height: 12),
+
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    children: [
+                      pw.Text(
+                        'Firma del técnico',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      if (hoja['firmaTecnico'] != null)
+                        pw.Image(
+                          pw.MemoryImage(hoja['firmaTecnico']),
+                          height: 150,
+                        ),
+                      if (hoja['nombreTecnico'] != null)
+                        pw.Text(hoja['nombreTecnico']),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          pw.SizedBox(height: 12),
-          pw.Text(
-            'En CAFRI, estamos comprometidos con la reducción del uso de papel y trabajamos continuamente para ser más amigables con el medio ambiente. '
-            'Nos esforzamos en la mejora constante y la actualización de nuestros sistemas para minimizar nuestro impacto ecológico.\n\n'
-            '(999) 102 1232 / (999) 490 1637   cafrimx.com\n\n'
-            'Este documento es propiedad de la empresa CAFRI COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V. con domicilio en Calle 59 K, 537 Cp. 97230 en la ciudad de Mérida, Yucatán, '
-            'por lo que queda prohibida la reproducción parcial o total de este documento y se tomarán acciones legales.',
-            style: pw.TextStyle(fontSize: 10),
-            textAlign: pw.TextAlign.center,
-          ),
-        ],
-      ),
-    );
+                pw.Expanded(
+                  child: pw.Column(
+                    children: [
+                      pw.Text(
+                        'Firma de quien recibe',
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      ),
+                      if (hoja['firmaRecibe'] != null)
+                        pw.Image(
+                          pw.MemoryImage(hoja['firmaRecibe']),
+                          height: 150,
+                        ),
+                      if (hoja['nombreRecibe'] != null)
+                        pw.Text(hoja['nombreRecibe']),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 12),
+            pw.Text(
+              'En CAFRI, estamos comprometidos con la reducción del uso de papel y trabajamos continuamente para ser más amigables con el medio ambiente. '
+              'Nos esforzamos en la mejora constante y la actualización de nuestros sistemas para minimizar nuestro impacto ecológico.\n\n'
+              '(999) 102 1232 / (999) 490 1637   cafrimx.com\n\n'
+              'Este documento es propiedad de la empresa CAFRI COMPAÑÍA DE AIRE ACONDICIONADO Y FRIGORIFICOS DEL SURESTE S.A. DE C.V. con domicilio en Calle 59 K, 537 Cp. 97230 en la ciudad de Mérida, Yucatán, '
+              'por lo que queda prohibida la reproducción parcial o total de este documento y se tomarán acciones legales.',
+              style: pw.TextStyle(fontSize: 10),
+              textAlign: pw.TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
 
     return pdf.save();
   }

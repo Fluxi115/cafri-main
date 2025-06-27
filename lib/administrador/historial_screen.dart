@@ -6,10 +6,12 @@ class HistorialActividadesScreen extends StatefulWidget {
   const HistorialActividadesScreen({super.key});
 
   @override
-  State<HistorialActividadesScreen> createState() => _HistorialActividadesScreenState();
+  State<HistorialActividadesScreen> createState() =>
+      _HistorialActividadesScreenState();
 }
 
-class _HistorialActividadesScreenState extends State<HistorialActividadesScreen> {
+class _HistorialActividadesScreenState
+    extends State<HistorialActividadesScreen> {
   DateTime? _fechaInicio;
   DateTime? _fechaFin;
   String? _colaboradorSeleccionado;
@@ -34,7 +36,8 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
     final tiposSet = <String>{};
     for (var doc in snapshot.docs) {
       final data = doc.data();
-      if (data['colaborador'] != null && data['colaborador'].toString().isNotEmpty) {
+      if (data['colaborador'] != null &&
+          data['colaborador'].toString().isNotEmpty) {
         colaboradoresSet.add(data['colaborador']);
       }
       if (data['tipo'] != null && data['tipo'].toString().isNotEmpty) {
@@ -51,8 +54,14 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
     final fecha = (data['fecha'] as Timestamp).toDate();
     if (_fechaInicio != null && fecha.isBefore(_fechaInicio!)) return false;
     if (_fechaFin != null && fecha.isAfter(_fechaFin!)) return false;
-    if (_colaboradorSeleccionado != null && _colaboradorSeleccionado!.isNotEmpty && data['colaborador'] != _colaboradorSeleccionado) return false;
-    if (_tipoSeleccionado != null && _tipoSeleccionado!.isNotEmpty && data['tipo'] != _tipoSeleccionado) return false;
+    if (_colaboradorSeleccionado != null &&
+        _colaboradorSeleccionado!.isNotEmpty &&
+        data['colaborador'] != _colaboradorSeleccionado)
+      return false;
+    if (_tipoSeleccionado != null &&
+        _tipoSeleccionado!.isNotEmpty &&
+        data['tipo'] != _tipoSeleccionado)
+      return false;
     return true;
   }
 
@@ -68,13 +77,25 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
               _detalle('Colaborador', data['colaborador']),
               _detalle('Tipo', data['tipo']),
               _detalle('Descripción', data['descripcion']),
-              _detalle('Fecha', DateFormat('dd/MM/yyyy – HH:mm').format((data['fecha'] as Timestamp).toDate())),
+              _detalle(
+                'Fecha',
+                DateFormat(
+                  'dd/MM/yyyy – HH:mm',
+                ).format((data['fecha'] as Timestamp).toDate()),
+              ),
               _detalle('Dirección', data['direccion_manual']),
               _detalle('Ubicación', data['ubicacion']),
               _detalle('Latitud', data['lat']?.toString()),
               _detalle('Longitud', data['lng']?.toString()),
               _detalle('Estado', data['estado']),
-              _detalle('Creado', data['creado'] != null ? DateFormat('dd/MM/yyyy – HH:mm').format((data['creado'] as Timestamp).toDate()) : ''),
+              _detalle(
+                'Creado',
+                data['creado'] != null
+                    ? DateFormat(
+                        'dd/MM/yyyy – HH:mm',
+                      ).format((data['creado'] as Timestamp).toDate())
+                    : '',
+              ),
             ],
           ),
         ),
@@ -121,9 +142,11 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                 // Fecha inicio
                 OutlinedButton.icon(
                   icon: const Icon(Icons.date_range),
-                  label: Text(_fechaInicio == null
-                      ? 'Desde'
-                      : DateFormat('dd/MM/yyyy').format(_fechaInicio!)),
+                  label: Text(
+                    _fechaInicio == null
+                        ? 'Desde'
+                        : DateFormat('dd/MM/yyyy').format(_fechaInicio!),
+                  ),
                   onPressed: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -141,9 +164,11 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                 // Fecha fin
                 OutlinedButton.icon(
                   icon: const Icon(Icons.date_range),
-                  label: Text(_fechaFin == null
-                      ? 'Hasta'
-                      : DateFormat('dd/MM/yyyy').format(_fechaFin!)),
+                  label: Text(
+                    _fechaFin == null
+                        ? 'Hasta'
+                        : DateFormat('dd/MM/yyyy').format(_fechaFin!),
+                  ),
                   onPressed: () async {
                     final picked = await showDatePicker(
                       context: context,
@@ -164,7 +189,9 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                   hint: const Text('Colaborador'),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Todos')),
-                    ..._colaboradores.map((c) => DropdownMenuItem(value: c, child: Text(c))),
+                    ..._colaboradores.map(
+                      (c) => DropdownMenuItem(value: c, child: Text(c)),
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -178,7 +205,9 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                   hint: const Text('Tipo'),
                   items: [
                     const DropdownMenuItem(value: null, child: Text('Todos')),
-                    ..._tipos.map((t) => DropdownMenuItem(value: t, child: Text(t))),
+                    ..._tipos.map(
+                      (t) => DropdownMenuItem(value: t, child: Text(t)),
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -224,12 +253,16 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                 }
 
                 // Agrupar por colaborador
-                final actividadesPorColaborador = <String, List<QueryDocumentSnapshot>>{};
+                final actividadesPorColaborador =
+                    <String, List<QueryDocumentSnapshot>>{};
                 for (var doc in snapshot.data!.docs) {
                   final data = doc.data() as Map<String, dynamic>;
                   if (_pasaFiltros(data)) {
-                    final colaborador = data['colaborador'] ?? 'Sin colaborador';
-                    actividadesPorColaborador.putIfAbsent(colaborador, () => []).add(doc);
+                    final colaborador =
+                        data['colaborador'] ?? 'Sin colaborador';
+                    actividadesPorColaborador
+                        .putIfAbsent(colaborador, () => [])
+                        .add(doc);
                   }
                 }
 
@@ -276,13 +309,15 @@ class _HistorialActividadesScreenState extends State<HistorialActividadesScreen>
                                 data['tipo'] == 'levantamiento'
                                     ? Icons.assignment
                                     : data['tipo'] == 'mantenimiento'
-                                        ? Icons.build
-                                        : Icons.settings_input_component,
+                                    ? Icons.build
+                                    : Icons.settings_input_component,
                                 color: Colors.indigo,
                               ),
                               title: Text(
                                 data['descripcion'] ?? 'Sin descripción',
-                                style: const TextStyle(fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               subtitle: Text(
                                 DateFormat('dd/MM/yyyy – HH:mm').format(fecha),

@@ -1,5 +1,3 @@
-// lib/colaborador/colaborador_actividades.dart
-
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
@@ -18,6 +16,56 @@ class ColaboradorActividades extends StatelessWidget {
         .orderBy('estado')
         .orderBy('fecha')
         .snapshots();
+  }
+
+  /// Agrega un registro de pausa al array 'pausas' y cambia el estado a 'pausada'
+  Future<void> pausarActividad(String docId) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('actividades')
+        .doc(docId);
+
+    // Guardar la fecha/hora localmente para tenerla como string legible
+    final now = DateTime.now();
+    final fechaLegible =
+        '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    await docRef.update({
+      'estado': 'pausada',
+      'pausas': FieldValue.arrayUnion([
+        {
+          'pausado': FieldValue.serverTimestamp(),
+          'pausado_str': fechaLegible,
+          'reanudado': null,
+          'reanudado_str': null,
+        },
+      ]),
+    });
+  }
+
+  /// Actualiza el último registro de pausa con la hora de reanudación y cambia el estado a 'en_proceso'
+  Future<void> reanudarActividad(String docId) async {
+    final docRef = FirebaseFirestore.instance
+        .collection('actividades')
+        .doc(docId);
+    final docSnap = await docRef.get();
+    final data = docSnap.data() as Map<String, dynamic>;
+    final pausas = List<Map<String, dynamic>>.from(data['pausas'] ?? []);
+    if (pausas.isNotEmpty && pausas.last['reanudado'] == null) {
+      final now = DateTime.now();
+      final fechaLegible =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      pausas[pausas.length - 1]['reanudado'] = Timestamp.now();
+      pausas[pausas.length - 1]['reanudado_str'] = fechaLegible;
+      await docRef.update({'estado': 'en_proceso', 'pausas': pausas});
+    } else {
+      // Si no hay pausa pendiente, solo cambia el estado
+      await docRef.update({'estado': 'en_proceso'});
+    }
+  }
+
+  /// Formatea la hora en formato HH:mm
+  String formatHora(DateTime dt) {
+    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -70,7 +118,9 @@ class ColaboradorActividades extends StatelessWidget {
 
             return Card(
               elevation: 8,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               margin: const EdgeInsets.symmetric(vertical: 12),
               child: ListTile(
                 leading: CircleAvatar(
@@ -79,21 +129,27 @@ class ColaboradorActividades extends StatelessWidget {
                     actividad['tipo'] == 'levantamiento'
                         ? Icons.assignment
                         : actividad['tipo'] == 'mantenimiento'
-                            ? Icons.build
-                            : Icons.settings_input_component,
+                        ? Icons.build
+                        : Icons.settings_input_component,
                     color: Colors.indigo,
                   ),
                 ),
                 title: Text(
                   actividad['titulo'] ?? 'Actividad sin título',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${fecha.day}/${fecha.month}/${fecha.year} – ${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}',
-                      style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -105,7 +161,11 @@ class ColaboradorActividades extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 4),
                         child: Row(
                           children: [
-                            const Icon(Icons.home, color: Colors.indigo, size: 18),
+                            const Icon(
+                              Icons.home,
+                              color: Colors.indigo,
+                              size: 18,
+                            ),
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
@@ -129,7 +189,11 @@ class ColaboradorActividades extends StatelessWidget {
                           },
                           child: Row(
                             children: const [
-                              Icon(Icons.location_on, color: Colors.red, size: 18),
+                              Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 18,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Ver ubicación',
@@ -146,7 +210,11 @@ class ColaboradorActividades extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Row(
                         children: [
-                          const Icon(Icons.info, size: 18, color: Colors.blueGrey),
+                          const Icon(
+                            Icons.info,
+                            size: 18,
+                            color: Colors.blueGrey,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Estado: ${estado[0].toUpperCase()}${estado.substring(1).replaceAll('_', ' ')}',
@@ -158,6 +226,46 @@ class ColaboradorActividades extends StatelessWidget {
                         ],
                       ),
                     ),
+                    // Mostrar historial de pausas si está pausada y hay pausas
+                    if ((actividad['pausas'] ?? []).isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Historial de pausas:',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            ...List.generate((actividad['pausas'] as List).length, (
+                              i,
+                            ) {
+                              final pausa = actividad['pausas'][i];
+                              String texto = '';
+                              if (pausa['pausado'] != null &&
+                                  pausa['pausado'] is Timestamp) {
+                                final pausado = (pausa['pausado'] as Timestamp)
+                                    .toDate();
+                                texto +=
+                                    'Pausado el ${pausado.day.toString().padLeft(2, '0')}/${pausado.month.toString().padLeft(2, '0')}/${pausado.year} a las ${formatHora(pausado)}';
+                              } else if (pausa['pausado_str'] != null) {
+                                texto += 'Pausado el ${pausa['pausado_str']}';
+                              }
+                              if (pausa['reanudado'] != null &&
+                                  pausa['reanudado'] is Timestamp) {
+                                final reanudado =
+                                    (pausa['reanudado'] as Timestamp).toDate();
+                                texto +=
+                                    ' - Reanudado el ${reanudado.day.toString().padLeft(2, '0')}/${reanudado.month.toString().padLeft(2, '0')}/${reanudado.year} a las ${formatHora(reanudado)}';
+                              } else if (pausa['reanudado_str'] != null) {
+                                texto +=
+                                    ' - Reanudado el ${pausa['reanudado_str']}';
+                              }
+                              return Text(texto);
+                            }),
+                          ],
+                        ),
+                      ),
                     if (esColaboradorAsignado)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
@@ -168,14 +276,18 @@ class ColaboradorActividades extends StatelessWidget {
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.check),
                                 label: const Text('Aceptar'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                ),
                                 onPressed: () async {
                                   await FirebaseFirestore.instance
                                       .collection('actividades')
                                       .doc(docId)
                                       .update({'estado': 'aceptada'});
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Actividad aceptada')),
+                                    const SnackBar(
+                                      content: Text('Actividad aceptada'),
+                                    ),
                                   );
                                 },
                               ),
@@ -183,14 +295,18 @@ class ColaboradorActividades extends StatelessWidget {
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('Iniciar'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                ),
                                 onPressed: () async {
                                   await FirebaseFirestore.instance
                                       .collection('actividades')
                                       .doc(docId)
                                       .update({'estado': 'en_proceso'});
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Actividad en proceso')),
+                                    const SnackBar(
+                                      content: Text('Actividad en proceso'),
+                                    ),
                                   );
                                 },
                               ),
@@ -198,28 +314,33 @@ class ColaboradorActividades extends StatelessWidget {
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.pause),
                                 label: const Text('Pausar'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.deepOrange),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.deepOrange,
+                                ),
                                 onPressed: () async {
-                                  await FirebaseFirestore.instance
-                                      .collection('actividades')
-                                      .doc(docId)
-                                      .update({'estado': 'pausada'});
+                                  await pausarActividad(docId);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Actividad pausada')),
+                                    const SnackBar(
+                                      content: Text('Actividad pausada'),
+                                    ),
                                   );
                                 },
                               ),
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.done_all),
                                 label: const Text('Terminar'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                ),
                                 onPressed: () async {
                                   await FirebaseFirestore.instance
                                       .collection('actividades')
                                       .doc(docId)
                                       .update({'estado': 'terminada'});
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Actividad terminada')),
+                                    const SnackBar(
+                                      content: Text('Actividad terminada'),
+                                    ),
                                   );
                                 },
                               ),
@@ -228,14 +349,15 @@ class ColaboradorActividades extends StatelessWidget {
                               ElevatedButton.icon(
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('Reanudar'),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.amber,
+                                ),
                                 onPressed: () async {
-                                  await FirebaseFirestore.instance
-                                      .collection('actividades')
-                                      .doc(docId)
-                                      .update({'estado': 'en_proceso'});
+                                  await reanudarActividad(docId);
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Actividad reanudada')),
+                                    const SnackBar(
+                                      content: Text('Actividad reanudada'),
+                                    ),
                                   );
                                 },
                               ),
