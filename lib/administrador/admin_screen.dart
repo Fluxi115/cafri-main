@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_synchronously
 
+import 'package:cafri/administrador/geolo.dart';
 import 'package:flutter/material.dart';
 import 'package:cafri/autentificacion/auth_service.dart';
 import 'package:cafri/autentificacion/login_screen.dart';
@@ -43,9 +44,7 @@ class _AdminScreenState extends State<AdminScreen> {
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Cerrar sesión'),
             ),
@@ -77,7 +76,18 @@ class _AdminScreenState extends State<AdminScreen> {
     } else if (value == 'calendario') {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const CalendarAdminScreen()), // calendarioacti_screen.dart
+        MaterialPageRoute(builder: (_) => const CalendarAdminScreen()),
+      );
+    } else if (value == 'Mapa de usuario') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const UserGeo()),
+      );
+    } else if (value == 'Seguir') {
+      // Ahora la opción "Seguir" abre la pantalla de seguimiento de ubicaciones
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const UserGeo()),
       );
     }
   }
@@ -119,14 +129,16 @@ class _AdminScreenState extends State<AdminScreen> {
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(
-                color: Colors.indigo,
-              ),
+              decoration: const BoxDecoration(color: Colors.indigo),
               accountName: const Text('Administrador'),
               accountEmail: Text(userEmail),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Icon(Icons.admin_panel_settings, color: Colors.indigo, size: 40),
+                child: Icon(
+                  Icons.admin_panel_settings,
+                  color: Colors.indigo,
+                  size: 40,
+                ),
               ),
             ),
             ListTile(
@@ -154,6 +166,11 @@ class _AdminScreenState extends State<AdminScreen> {
               title: const Text('Calendario'),
               onTap: () => _handleDrawerSelection('calendario'),
             ),
+            ListTile(
+              leading: const Icon(Icons.spatial_tracking),
+              title: const Text('Seguir'),
+              onTap: () => _handleDrawerSelection('Seguir'),
+            ),
             const Divider(),
             ListTile(
               leading: const Icon(Icons.exit_to_app, color: Colors.red),
@@ -176,13 +193,19 @@ class _AdminScreenState extends State<AdminScreen> {
           child: Card(
             elevation: 8,
             margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(32.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.admin_panel_settings, size: 64, color: Colors.indigo),
+                  const Icon(
+                    Icons.admin_panel_settings,
+                    size: 64,
+                    color: Colors.indigo,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     '¡Bienvenido, Administrador!',
