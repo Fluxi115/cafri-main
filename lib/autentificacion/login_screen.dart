@@ -33,52 +33,52 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
-void _login() async {
-  if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Por favor, completa todos los campos')),
-    );
-    return;
-  }
-
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    String? result = await _authService.loginUser(
-      email: _emailController.text,
-      password: _passwordController.text,
-    );
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (result == 'administrador') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AdminScreen()),
-      );
-    } else if (result == 'colaborador') {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const ColaboradorScreen()),
-      );
-    } else {
+  void _login() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al iniciar sesión: $result')),
+        const SnackBar(content: Text('Por favor, completa todos los campos')),
       );
+      return;
     }
-  } catch (e) {
+
     setState(() {
-      _isLoading = false;
+      _isLoading = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Ocurrió un error: $e')),
-    );
+
+    try {
+      String? result = await _authService.loginUser(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result == 'administrador') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminScreen()),
+        );
+      } else if (result == 'colaborador') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ColaboradorScreen()),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al iniciar sesión: $result')),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Ocurrió un error: $e')));
+    }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -87,14 +87,19 @@ void _login() async {
           ? Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color.fromARGB(255, 29, 77, 235), Color.fromARGB(255, 0, 0, 0)],
+                  colors: [
+                    Color.fromARGB(255, 29, 77, 235),
+                    Color.fromARGB(255, 0, 0, 0),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
               ),
               child: const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Color.fromARGB(92, 29, 77, 235)),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color.fromARGB(92, 29, 77, 235),
+                  ),
                   strokeWidth: 5,
                 ),
               ),
@@ -102,7 +107,10 @@ void _login() async {
           : Container(
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Color.fromARGB(255, 29, 77, 235), Color.fromARGB(255, 0, 0, 0)],
+                  colors: [
+                    Color.fromARGB(255, 29, 77, 235),
+                    Color.fromARGB(255, 0, 0, 0),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -114,7 +122,10 @@ void _login() async {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Column(
@@ -182,7 +193,8 @@ void _login() async {
                                   padding: EdgeInsets.symmetric(vertical: 8.0),
                                   child: CircularProgressIndicator(
                                     valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color.fromARGB(255, 0, 0, 0)),
+                                      Color.fromARGB(255, 0, 0, 0),
+                                    ),
                                   ),
                                 )
                               : SizedBox(
@@ -190,7 +202,9 @@ void _login() async {
                                   child: ElevatedButton(
                                     onPressed: _login,
                                     style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
                                       backgroundColor: const Color(0xFF2193b0),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
