@@ -80,7 +80,6 @@ class _CalendarPageState extends State<CalendarPage> {
     };
 
     if (docId == null) {
-      // Al crear, agrega el campo 'estado'
       data['estado'] = 'pendiente';
       await FirebaseFirestore.instance.collection('actividades').add(data);
       ScaffoldMessenger.of(
@@ -490,179 +489,199 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F6FA),
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Calendario de actividades'),
-        backgroundColor: Colors.indigo,
-        elevation: 2,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('actividades')
-            .orderBy('fecha')
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final actividades = snapshot.data!.docs;
-          // FILTRO: Oculta actividades terminadas
-          final actividadesFiltradas = actividades.where((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            return data['estado'] != 'terminada';
-          }).toList();
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color.fromARGB(255, 29, 77, 235),
+              Color.fromARGB(255, 0, 0, 0),
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('actividades')
+                .orderBy('fecha')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final actividades = snapshot.data!.docs;
+              final actividadesFiltradas = actividades.where((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return data['estado'] != 'terminada';
+              }).toList();
 
-          if (actividadesFiltradas.isEmpty) {
-            return const Center(
-              child: Text(
-                'No hay actividades agendadas.',
-                style: TextStyle(fontSize: 18, color: Colors.black54),
-              ),
-            );
-          }
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: actividadesFiltradas.length,
-            itemBuilder: (context, index) {
-              final actividad =
-                  actividadesFiltradas[index].data() as Map<String, dynamic>;
-              final docId = actividadesFiltradas[index].id;
-              final fecha = (actividad['fecha'] as Timestamp).toDate();
-              return Card(
-                elevation: 8,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                child: ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: Colors.indigo[100],
-                    child: Icon(
-                      actividad['tipo'] == 'levantamiento'
-                          ? Icons.assignment
-                          : actividad['tipo'] == 'mantenimiento'
-                          ? Icons.build
-                          : Icons.settings_input_component,
-                      color: Colors.indigo,
-                    ),
+              if (actividadesFiltradas.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'No hay actividades agendadas.',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
-                  title: Text(
-                    '${actividad['tipo']?.toString().toUpperCase() ?? ''} - ${actividad['colaborador'] ?? ''}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
+                );
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: actividadesFiltradas.length,
+                itemBuilder: (context, index) {
+                  final actividad =
+                      actividadesFiltradas[index].data()
+                          as Map<String, dynamic>;
+                  final docId = actividadesFiltradas[index].id;
+                  final fecha = (actividad['fecha'] as Timestamp).toDate();
+                  return Card(
+                    elevation: 8,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        DateFormat('dd/MM/yyyy – HH:mm').format(fecha),
-                        style: const TextStyle(
-                          color: Colors.black87,
-                          fontWeight: FontWeight.w500,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    color: Colors.white.withAlpha(235),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.indigo[100],
+                        child: Icon(
+                          actividad['tipo'] == 'levantamiento'
+                              ? Icons.assignment
+                              : actividad['tipo'] == 'mantenimiento'
+                              ? Icons.build
+                              : Icons.settings_input_component,
+                          color: Colors.indigo,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        actividad['descripcion'] ?? '',
-                        style: const TextStyle(color: Colors.black54),
+                      title: Text(
+                        '${actividad['tipo']?.toString().toUpperCase() ?? ''} - ${actividad['colaborador'] ?? ''}',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 17,
+                        ),
                       ),
-                      if ((actividad['direccion_manual'] ?? '').isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.home,
-                                color: Colors.indigo,
-                                size: 18,
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('dd/MM/yyyy – HH:mm').format(fecha),
+                            style: const TextStyle(
+                              color: Colors.black87,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            actividad['descripcion'] ?? '',
+                            style: const TextStyle(color: Colors.black54),
+                          ),
+                          if ((actividad['direccion_manual'] ?? '').isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.home,
+                                    color: Colors.indigo,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      actividad['direccion_manual'],
+                                      style: const TextStyle(
+                                        color: Colors.indigo,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  actividad['direccion_manual'],
-                                  style: const TextStyle(color: Colors.indigo),
-                                  overflow: TextOverflow.ellipsis,
+                            ),
+                          if ((actividad['ubicacion'] ?? '').isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: GestureDetector(
+                                onTap: () async {
+                                  final url = actividad['ubicacion'];
+                                  if (await canLaunchUrl(Uri.parse(url))) {
+                                    await launchUrl(Uri.parse(url));
+                                  }
+                                },
+                                child: Row(
+                                  children: const [
+                                    Icon(
+                                      Icons.location_on,
+                                      color: Colors.red,
+                                      size: 18,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Text(
+                                      'Ver ubicación',
+                                      style: TextStyle(
+                                        color: Colors.red,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      isThreeLine: true,
+                      trailing: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.indigo),
+                        onPressed: () =>
+                            _cargarActividadParaEditar(actividad, docId),
+                      ),
+                      onTap: () => _cargarActividadParaEditar(actividad, docId),
+                      onLongPress: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Eliminar actividad'),
+                            content: const Text(
+                              '¿Seguro que deseas eliminar esta actividad?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(false),
+                                child: const Text('Cancelar'),
+                              ),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                ),
+                                onPressed: () =>
+                                    Navigator.of(context).pop(true),
+                                child: const Text('Eliminar'),
                               ),
                             ],
                           ),
-                        ),
-                      if ((actividad['ubicacion'] ?? '').isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: GestureDetector(
-                            onTap: () async {
-                              final url = actividad['ubicacion'];
-                              if (await canLaunchUrl(Uri.parse(url))) {
-                                await launchUrl(Uri.parse(url));
-                              }
-                            },
-                            child: Row(
-                              children: const [
-                                Icon(
-                                  Icons.location_on,
-                                  color: Colors.red,
-                                  size: 18,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Ver ubicación',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  isThreeLine: true,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.indigo),
-                    onPressed: () =>
-                        _cargarActividadParaEditar(actividad, docId),
-                  ),
-                  onTap: () => _cargarActividadParaEditar(actividad, docId),
-                  onLongPress: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Eliminar actividad'),
-                        content: const Text(
-                          '¿Seguro que deseas eliminar esta actividad?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text('Cancelar'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                            ),
-                            onPressed: () => Navigator.of(context).pop(true),
-                            child: const Text('Eliminar'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirm == true) {
-                      await FirebaseFirestore.instance
-                          .collection('actividades')
-                          .doc(docId)
-                          .delete();
-                      setState(() {});
-                    }
-                  },
-                ),
+                        );
+                        if (confirm == true) {
+                          await FirebaseFirestore.instance
+                              .collection('actividades')
+                              .doc(docId)
+                              .delete();
+                          setState(() {});
+                        }
+                      },
+                    ),
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.indigo,

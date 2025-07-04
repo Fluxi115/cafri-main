@@ -12,19 +12,16 @@ class AuthService {
     required String rol,
   }) async {
     try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: email.trim(),
-        password: password.trim(),
-      );
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(
+            email: email.trim(),
+            password: password.trim(),
+          );
 
-      await _firestore
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .set({
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'name': name.trim(),
         "email": email.trim(),
-        "rol": rol.trim().toLowerCase(), // <-- Consistencia
+        "rol": rol.trim().toLowerCase(),
       });
 
       return null;
@@ -38,8 +35,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      UserCredential userCredential =
-          await _auth.signInWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email.trim(),
         password: password.trim(),
       );
@@ -48,6 +44,11 @@ class AuthService {
           .collection('users')
           .doc(userCredential.user!.uid)
           .get();
+
+      if (!userDoc.exists) {
+        return 'Usuario no registrado correctamente. Contacta al administrador.';
+      }
+
       return userDoc['rol'];
     } catch (e) {
       return e.toString();

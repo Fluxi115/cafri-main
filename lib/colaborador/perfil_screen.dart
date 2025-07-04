@@ -1,213 +1,266 @@
-// // ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 
-// import 'package:flutter/material.dart';
-// import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_storage/firebase_storage.dart';
-// import 'package:intl/intl.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'dart:io';
+import 'dart:io' show File;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-// class UserProfileScreen extends StatefulWidget {
-//   final String userId;
-//   const UserProfileScreen({super.key, required this.userId});
+class MenuAdminColab extends StatefulWidget {
+  const MenuAdminColab({super.key});
 
-//   @override
-//   State<UserProfileScreen> createState() => _UserProfileScreenState();
-// }
+  @override
+  State<MenuAdminColab> createState() => _MenuAdminColabState();
+}
 
-// class _UserProfileScreenState extends State<UserProfileScreen> {
-//   File? _avatarImageFile;
-//   String? _avatarUrl;
-//   late DateTime _now;
-//   bool _isUploading = false;
+class _MenuAdminColabState extends State<MenuAdminColab> {
+  late Future<Map<String, dynamic>?> _userDataFuture;
+  XFile? _pickedImage;
+  Uint8List? _webImageBytes;
+  bool _isUploading = false;
 
-//   // Campos del usuario
-//   String _fullName = '';
-//   String _role = '';
-//   String _status = '';
+  @override
+  void initState() {
+    super.initState();
+    _userDataFuture = _getUserData();
+  }
 
-//   bool _isLoading = true;
-//   String? _errorMsg;
+  Future<Map<String, dynamic>?> _getUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
 
-//   @override
-//   void initState() {
-//     super.initState();
-//     _now = DateTime.now();
-//     _fetchUserData();
-//     // Actualiza la hora cada segundo
-//     Future.doWhile(() async {
-//       await Future.delayed(const Duration(seconds: 1));
-//       if (!mounted) return false;
-//       setState(() {
-//         _now = DateTime.now();
-//       });
-//       return true;
-//     });
-//   }
+    final query = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: user.email)
+        .limit(1)
+        .get();
 
-//   Future<void> _fetchUserData() async {
-//     try {
-//       final doc = await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).get();
-//       if (!doc.exists) {
-//         setState(() {
-//           _isLoading = false;
-//           _errorMsg = 'No se encontró el usuario.';
-//         });
-//         return;
-//       }
-//       final data = doc.data()!;
-//       setState(() {
-//         // Soporta ambos nombres de campo
-//         _fullName = data['fullName'] ?? data['name'] ?? '';
-//         _role = data['role'] ?? data['rol'] ?? '';
-//         _status = data['status'] ?? '';
-//         _avatarUrl = data['avatarUrl'] ?? '';
-//         _isLoading = false;
-//         if (_fullName.isEmpty) {
-//           _errorMsg = 'El nombre del usuario no está disponible.';
-//         }
-//       });
-//     } catch (e) {
-//       setState(() {
-//         _isLoading = false;
-//         _errorMsg = 'Error al cargar el perfil: $e';
-//       });
-//     }
-//   }
+    if (query.docs.isNotEmpty) {
+      final doc = query.docs.first;
+      return {
+        'uid': doc.id,
+        'nombre': doc['name'] ?? 'Sin nombre',
+        'email': doc['email'] ?? 'Sin email',
+        'rol': doc['rol'] ?? 'Sin rol',
+        'fotoUrl': doc['photoUrl'] ?? '',
+      };
+    } else {
+      return {
+        'uid': user.uid,
+        'nombre': user.displayName ?? 'Sin nombre',
+        'email': user.email ?? 'Sin email',
+        'rol': 'Sin rol',
+        'fotoUrl': user.photoURL ?? '',
+      };
+    }
+  }
 
-//   Future<void> _pickAndUploadImage() async {
-//     final picker = ImagePicker();
-//     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-//     if (pickedFile != null) {
-//       setState(() {
-//         _isUploading = true;
-//       });
-//       File imageFile = File(pickedFile.path);
+  Future<void> _pickAndUploadImage(String userId) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 75,
+    );
 
-//       try {
-//         String fileName = 'avatars/${widget.userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-//         Reference storageRef = FirebaseStorage.instance.ref().child(fileName);
-//         UploadTask uploadTask = storageRef.putFile(imageFile);
+    if (pickedFile == null) return;
 
-//         TaskSnapshot snapshot = await uploadTask;
-//         String downloadUrl = await snapshot.ref.getDownloadURL();
+    Uint8List? webBytes;
+    if (kIsWeb) {
+      webBytes = await pickedFile.readAsBytes();
+    }
 
-//         await FirebaseFirestore.instance.collection('usuarios').doc(widget.userId).update({
-//           'avatarUrl': downloadUrl,
-//         });
+    setState(() {
+      _isUploading = true;
+      _pickedImage = pickedFile;
+      _webImageBytes = webBytes;
+    });
 
-//         setState(() {
-//           _avatarImageFile = imageFile;
-//           _avatarUrl = downloadUrl;
-//           _isUploading = false;
-//         });
-//       } catch (e) {
-//         setState(() {
-//           _isUploading = false;
-//         });
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           SnackBar(content: Text('Error al subir la imagen: $e')),
-//         );
-//       }
-//     }
-//   }
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos')
+          .child('$userId.jpg');
 
-//   @override
-//   Widget build(BuildContext context) {
-//     final dateTimeFormat = DateFormat('dd/MM/yyyy HH:mm:ss');
+      String? downloadUrl;
+      if (kIsWeb) {
+        await ref.putData(
+          webBytes!,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+        downloadUrl = await ref.getDownloadURL();
+      } else {
+        await ref.putFile(File(pickedFile.path));
+        downloadUrl = await ref.getDownloadURL();
+      }
 
-//     if (_isLoading) {
-//       return const Center(child: CircularProgressIndicator());
-//     }
-//     if (_errorMsg != null) {
-//       return Center(
-//         child: Padding(
-//           padding: const EdgeInsets.all(24.0),
-//           child: Text(
-//             _errorMsg!,
-//             style: const TextStyle(color: Colors.red, fontSize: 18),
-//             textAlign: TextAlign.center,
-//           ),
-//         ),
-//       );
-//     }
+      // Actualiza Firestore y Auth
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'photoUrl': downloadUrl,
+      });
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null && user.uid == userId) {
+        await user.updatePhotoURL(downloadUrl);
+      }
 
-//     return SingleChildScrollView(
-//       child: Card(
-//         margin: const EdgeInsets.all(16.0),
-//         child: Padding(
-//           padding: const EdgeInsets.all(24.0),
-//           child: Column(
-//             mainAxisSize: MainAxisSize.min,
-//             children: [
-//               Stack(
-//                 alignment: Alignment.bottomRight,
-//                 children: [
-//                   CircleAvatar(
-//                     radius: 50,
-//                     backgroundImage: _avatarImageFile != null
-//                         ? FileImage(_avatarImageFile!)
-//                         : (_avatarUrl != null && _avatarUrl!.isNotEmpty
-//                             ? NetworkImage(_avatarUrl!)
-//                             : const AssetImage('assets/avatar_placeholder.png')) as ImageProvider,
-//                   ),
-//                   Positioned(
-//                     bottom: 0,
-//                     right: 4,
-//                     child: InkWell(
-//                       onTap: _isUploading ? null : _pickAndUploadImage,
-//                       child: CircleAvatar(
-//                         radius: 18,
-//                         backgroundColor: Colors.blue,
-//                         child: _isUploading
-//                             ? const SizedBox(
-//                                 width: 18,
-//                                 height: 18,
-//                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-//                               )
-//                             : const Icon(Icons.camera_alt, color: Colors.white, size: 20),
-//                       ),
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               const SizedBox(height: 16),
-//               Text(
-//                 _fullName,
-//                 style: Theme.of(context).textTheme.titleLarge,
-//               ),
-//               const SizedBox(height: 8),
-//               Row(
-//                 mainAxisAlignment: MainAxisAlignment.center,
-//                 children: [
-//                   Chip(
-//                     label: Text(_role.isNotEmpty ? _role : 'Sin rol'),
-//                     avatar: const Icon(Icons.person_outline),
-//                   ),
-//                   const SizedBox(width: 8),
-//                   Chip(
-//                     label: Text(_status.isNotEmpty ? _status : 'Sin estado'),
-//                     avatar: Icon(
-//                       _status.toLowerCase() == 'activo'
-//                           ? Icons.check_circle
-//                           : Icons.cancel,
-//                       color: _status.toLowerCase() == 'activo'
-//                           ? Colors.green
-//                           : Colors.red,
-//                     ),
-//                   ),
-//                 ],
-//               ),
-//               const Divider(),
-//               ListTile(
-//                 leading: const Icon(Icons.access_time),
-//                 title: const Text('Fecha y hora actual'),
-//                 subtitle: Text(dateTimeFormat.format(_now)),
-//               ),
-//             ],
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+      setState(() {
+        _isUploading = false;
+        _userDataFuture = _getUserData(); // Refresca los datos
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil actualizada')),
+      );
+    } catch (e) {
+      setState(() {
+        _isUploading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error al subir la foto: $e')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Perfil de Colaborador'),
+        backgroundColor: const Color(0xFF6D5DF6),
+      ),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF6D5DF6), Color(0xFF3FC5F0)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Center(
+          child: FutureBuilder<Map<String, dynamic>?>(
+            future: _userDataFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting ||
+                  _isUploading) {
+                return const CircularProgressIndicator();
+              }
+              if (!snapshot.hasData || snapshot.data == null) {
+                return const Text(
+                  'No se pudo cargar la información del usuario',
+                  style: TextStyle(fontSize: 20),
+                );
+              }
+
+              final data = snapshot.data!;
+              final String nombre = data['nombre'] ?? 'Sin nombre';
+              final String email = data['email'] ?? 'Sin email';
+              final String rol = data['rol'] ?? 'Sin rol';
+              final String fotoUrl = data['fotoUrl'] ?? '';
+              final String userId = data['uid'];
+
+              return ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Card(
+                  elevation: 12,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(40.0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          alignment: Alignment.bottomRight,
+                          children: [
+                            CircleAvatar(
+                              radius: 70,
+                              backgroundColor: const Color(0xFF6D5DF6),
+                              backgroundImage: (_pickedImage != null)
+                                  ? (kIsWeb
+                                        ? (_webImageBytes != null
+                                              ? MemoryImage(_webImageBytes!)
+                                              : null)
+                                        : FileImage(File(_pickedImage!.path))
+                                              as ImageProvider)
+                                  : (fotoUrl.isNotEmpty
+                                        ? NetworkImage(fotoUrl)
+                                        : null),
+                              child: (fotoUrl.isEmpty && _pickedImage == null)
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 80,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: FloatingActionButton(
+                                mini: true,
+                                backgroundColor: Colors.white,
+                                onPressed: () => _pickAndUploadImage(userId),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Color(0xFF6D5DF6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        Text(
+                          nombre,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          email,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Chip(
+                          label: Text(
+                            rol,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          backgroundColor: const Color(0xFF6D5DF6),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -12,7 +12,7 @@ import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
-enum ColaboradorSection { informacion, actividades, calendario, documento }
+enum ColaboradorSection { actividades, calendario, documento }
 
 class ColaboradorScreen extends StatefulWidget {
   const ColaboradorScreen({super.key});
@@ -24,7 +24,7 @@ class ColaboradorScreen extends StatefulWidget {
 class _ColaboradorScreenState extends State<ColaboradorScreen> {
   late String userEmail;
   late String userId;
-  ColaboradorSection selectedSection = ColaboradorSection.informacion;
+  ColaboradorSection selectedSection = ColaboradorSection.actividades;
   final AuthService _authService = AuthService();
 
   StreamSubscription<Position>? _positionStream;
@@ -406,6 +406,14 @@ class _ColaboradorScreenState extends State<ColaboradorScreen> {
     return ColaboradorCalendario(userEmail: userEmail);
   }
 
+  void _goToPerfilScreen() {
+    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => PerfilScreen(userId: userId)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -417,11 +425,10 @@ class _ColaboradorScreenState extends State<ColaboradorScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            // Drawer header without 'Colaborador' and without user name
             UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: Colors.indigo),
-              accountName: null, // No name
-              accountEmail: null, // No email
+              accountName: null,
+              accountEmail: null,
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
                 child: Icon(Icons.person, color: Colors.indigo, size: 40),
@@ -429,10 +436,8 @@ class _ColaboradorScreenState extends State<ColaboradorScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.info),
-              title: const Text('Perfil e Información'),
-              selected: selectedSection == ColaboradorSection.informacion,
-              onTap: () =>
-                  _handleDrawerSelection(ColaboradorSection.informacion),
+              title: const Text('Perfil'),
+              onTap: _goToPerfilScreen,
             ),
             ListTile(
               leading: const Icon(Icons.check_circle_outline),
@@ -466,8 +471,6 @@ class _ColaboradorScreenState extends State<ColaboradorScreen> {
       body: Builder(
         builder: (context) {
           switch (selectedSection) {
-            case ColaboradorSection.informacion:
-              return UserProfileScreen(userId: userId);
             case ColaboradorSection.actividades:
               return _buildActividades();
             case ColaboradorSection.calendario:
@@ -481,19 +484,23 @@ class _ColaboradorScreenState extends State<ColaboradorScreen> {
   }
 }
 
-class UserProfileScreen extends StatefulWidget {
+// Pantalla de perfil aparte
+class PerfilScreen extends StatefulWidget {
   final String userId;
-  const UserProfileScreen({super.key, required this.userId});
+  const PerfilScreen({super.key, required this.userId});
 
   @override
-  State<UserProfileScreen> createState() => _UserProfileScreenState();
+  State<PerfilScreen> createState() => _PerfilScreenState();
 }
 
-class _UserProfileScreenState extends State<UserProfileScreen> {
+class _PerfilScreenState extends State<PerfilScreen> {
   String _role = '';
   DateTime? _birthDate;
   bool _isLoading = true;
   String? _errorMsg;
+  String? _name;
+  String? _email;
+  String? _photoUrl;
 
   @override
   void initState() {
@@ -517,6 +524,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final data = doc.data()!;
       setState(() {
         _role = data['role'] ?? data['rol'] ?? '';
+        _name = data['name'] ?? '';
+        _email = data['email'] ?? '';
+        _photoUrl = data['photoUrl'] ?? '';
         if (data['birthDate'] != null) {
           if (data['birthDate'] is Timestamp) {
             _birthDate = (data['birthDate'] as Timestamp).toDate();
@@ -556,32 +566,57 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       );
     }
 
-    return SingleChildScrollView(
-      child: Card(
-        margin: const EdgeInsets.all(16.0),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Name removed
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Chip(
-                    label: Text(_role.isNotEmpty ? _role : 'Sin rol'),
-                    avatar: const Icon(Icons.person_outline),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (_birthDate != null)
-                ListTile(
-                  leading: const Icon(Icons.cake),
-                  title: const Text('Fecha de nacimiento'),
-                  subtitle: Text(dateFormat.format(_birthDate!)),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Perfil'),
+        backgroundColor: Colors.indigo,
+      ),
+      body: SingleChildScrollView(
+        child: Card(
+          margin: const EdgeInsets.all(16.0),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.indigo,
+                  backgroundImage: (_photoUrl != null && _photoUrl!.isNotEmpty)
+                      ? NetworkImage(_photoUrl!)
+                      : null,
+                  child: (_photoUrl == null || _photoUrl!.isEmpty)
+                      ? const Icon(Icons.person, color: Colors.white, size: 40)
+                      : null,
                 ),
-            ],
+                const SizedBox(height: 16),
+                Text(
+                  _name ?? 'Sin nombre',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _email ?? 'Sin email',
+                  style: const TextStyle(fontSize: 16, color: Colors.black54),
+                ),
+                const SizedBox(height: 8),
+                Chip(
+                  label: Text(_role.isNotEmpty ? _role : 'Sin rol'),
+                  avatar: const Icon(Icons.person_outline),
+                ),
+                const SizedBox(height: 8),
+                if (_birthDate != null)
+                  ListTile(
+                    leading: const Icon(Icons.cake),
+                    title: const Text('Fecha de nacimiento'),
+                    subtitle: Text(dateFormat.format(_birthDate!)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:latlong2/latlong.dart' as latlng;
 import 'package:flutter_map/flutter_map.dart';
+import 'package:intl/intl.dart';
 
 class UserGeo extends StatefulWidget {
   const UserGeo({super.key});
@@ -38,8 +39,15 @@ class _UserGeoState extends State<UserGeo> {
     });
   }
 
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return 'Sin datos';
+    final date = timestamp.toDate();
+    return DateFormat('dd/MM/yyyy HH:mm:ss').format(date);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Ubicaciones en tiempo real'),
@@ -75,27 +83,41 @@ class _UserGeoState extends State<UserGeo> {
                 'lat': data['lat'],
                 'lng': data['lng'],
                 'timestamp': data['timestamp'],
+                'avatarUrl': data['avatarUrl'], // Opcional: si tienes avatar
               });
               markers.add(
                 Marker(
                   point: latlng.LatLng(data['lat'], data['lng']),
-                  width: 40,
-                  height: 40,
+                  width: 48,
+                  height: 48,
                   alignment: Alignment.center,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedUserId = userId;
-                        _selectedUserData = data;
-                      });
-                      _centerMapOnUser(data);
-                    },
-                    child: Icon(
-                      Icons.location_on,
-                      color: _selectedUserId == userId
-                          ? Colors.blueAccent
-                          : Colors.red,
-                      size: 36,
+                  child: AnimatedScale(
+                    scale: _selectedUserId == userId ? 1.3 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedUserId = userId;
+                          _selectedUserData = data;
+                          _lastFollowedUserPosition = null;
+                        });
+                        _centerMapOnUser(data);
+                      },
+                      child: Icon(
+                        Icons.location_on,
+                        color: _selectedUserId == userId
+                            ? theme.colorScheme.primary
+                            : Colors.red,
+                        size: 40,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(
+                              alpha: 51,
+                            ), // 0.2 * 255 ≈ 51
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -103,7 +125,7 @@ class _UserGeoState extends State<UserGeo> {
             }
           }
 
-          // Seguir automáticamente al usuario seleccionado
+          // Solo seguir automáticamente al usuario si está seleccionado
           if (_selectedUserId != null) {
             final user = users.firstWhere(
               (u) => u['userId'] == _selectedUserId,
@@ -114,7 +136,10 @@ class _UserGeoState extends State<UserGeo> {
               if (_lastFollowedUserPosition == null ||
                   _lastFollowedUserPosition != currentPosition) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _centerMapOnUser(user);
+                  // Solo centrar si sigue seleccionado
+                  if (_selectedUserId == user['userId']) {
+                    _centerMapOnUser(user);
+                  }
                 });
               }
             }
@@ -127,87 +152,162 @@ class _UserGeoState extends State<UserGeo> {
 
           return Column(
             children: [
-              // Lista de usuarios para seleccionar a quién seguir
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: users.length,
-                  itemBuilder: (context, index) {
-                    final user = users[index];
-                    final isSelected = user['userId'] == _selectedUserId;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedUserId = user['userId'];
-                          _selectedUserData = user;
-                          _lastFollowedUserPosition = null;
-                        });
-                        _centerMapOnUser(user);
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 16,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.blueAccent
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(20),
-                          border: isSelected
-                              ? Border.all(color: Colors.blue, width: 2)
-                              : null,
-                        ),
-                        child: Center(
-                          child: Text(
-                            user['nombre'],
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
+              // Card para el selector de usuario
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Card(
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.person_search, color: Colors.blueGrey),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              hint: const Text(
+                                'Selecciona un usuario para seguir',
+                              ),
+                              value: _selectedUserId,
+                              items: users.map((user) {
+                                return DropdownMenuItem<String>(
+                                  value: user['userId'],
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: Colors.blue[100],
+                                        backgroundImage:
+                                            user['avatarUrl'] != null
+                                            ? NetworkImage(user['avatarUrl'])
+                                            : null,
+                                        child: user['avatarUrl'] == null
+                                            ? Text(
+                                                user['nombre']
+                                                    .toString()
+                                                    .substring(0, 1)
+                                                    .toUpperCase(),
+                                                style: const TextStyle(
+                                                  color: Colors.blue,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        user['nombre'],
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (userId) {
+                                final user = users.firstWhere(
+                                  (u) => u['userId'] == userId,
+                                );
+                                setState(() {
+                                  _selectedUserId = userId;
+                                  _selectedUserData = user;
+                                  _lastFollowedUserPosition = null;
+                                });
+                                _centerMapOnUser(user);
+                              },
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      ],
+                    ),
+                  ),
                 ),
               ),
               if (_selectedUserId != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4.0),
-                  child: Text(
-                    'Siguiendo a: ${_selectedUserData?['nombre'] ?? _selectedUserId}',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4.0,
+                    horizontal: 16,
+                  ),
+                  child: Card(
+                    // Reemplazo de withAlpha(20) por withValues(alpha: 20)
+                    color: theme.colorScheme.primary.withValues(alpha: 20),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue[100],
+                        backgroundImage: _selectedUserData?['avatarUrl'] != null
+                            ? NetworkImage(_selectedUserData!['avatarUrl'])
+                            : null,
+                        child: _selectedUserData?['avatarUrl'] == null
+                            ? Text(
+                                (_selectedUserData?['nombre'] ??
+                                        _selectedUserId)
+                                    .toString()
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.blue,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )
+                            : null,
+                      ),
+                      title: Text(
+                        'Siguiendo a: ${_selectedUserData?['nombre'] ?? _selectedUserId}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'Última actualización: ${_formatTimestamp(_selectedUserData?['timestamp'])}',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.cancel, color: Colors.redAccent),
+                        tooltip: 'Dejar de seguir',
+                        onPressed: _unfollowUser,
+                      ),
                     ),
                   ),
                 ),
               // Mapa
               Expanded(
-                child: FlutterMap(
-                  mapController: _mapController,
-                  options: MapOptions(
-                    initialCenter: initialCenter,
-                    initialZoom: users.isNotEmpty ? 14 : 2,
-                    crs: const Epsg3857(),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(24),
                   ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                      subdomains: const ['a', 'b', 'c'],
-                      userAgentPackageName: 'com.example.app',
+                  child: FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: initialCenter,
+                      initialZoom: users.isNotEmpty ? 14 : 2,
+                      crs: const Epsg3857(),
                     ),
-                    MarkerLayer(markers: markers),
-                  ],
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.app',
+                      ),
+                      MarkerLayer(markers: markers),
+                    ],
+                  ),
                 ),
               ),
             ],

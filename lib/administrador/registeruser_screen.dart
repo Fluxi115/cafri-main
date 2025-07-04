@@ -47,16 +47,20 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
     });
 
     if (result == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('¡Registro exitoso!'),
-        backgroundColor: Colors.green,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Registro exitoso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
       Navigator.pop(context);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Error al registrar: $result'),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al registrar: $result'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -78,13 +82,16 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
       ),
       body: Stack(
         children: [
-          // Fondo profesional con gradiente y formas
+          // Fondo profesional con gradiente azul-negro y formas decorativas
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF232526), Color(0xFF414345)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+                colors: [
+                  Color.fromARGB(255, 29, 77, 235),
+                  Color.fromARGB(255, 0, 0, 0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
               ),
             ),
           ),
@@ -95,7 +102,7 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: Colors.indigo.withValues(alpha: (0.15 * 255).toDouble()),
+                color: Colors.white.withAlpha(25),
                 shape: BoxShape.circle,
               ),
             ),
@@ -107,7 +114,7 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
               width: 160,
               height: 160,
               decoration: BoxDecoration(
-                color: Colors.indigo.withValues(alpha: (0.15 * 255).toDouble()),
+                color: Colors.indigo.withAlpha(30),
                 shape: BoxShape.circle,
               ),
             ),
@@ -117,13 +124,16 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Card(
-                  elevation: 10,
-                  color: Colors.indigo.withValues(alpha: (0.15 * 255).toDouble()),
+                  elevation: 12,
+                  color: Colors.white.withAlpha(220),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(22),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -138,9 +148,10 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
                         Text(
                           "Crear cuenta",
                           style: TextStyle(
-                            fontSize: 26,
+                            fontSize: 28,
                             fontWeight: FontWeight.bold,
                             color: Colors.indigo[700],
+                            letterSpacing: 0.5,
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -209,7 +220,8 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
                             suffixIcon: IconButton(
                               onPressed: () {
                                 setState(() {
-                                  isConfirmPasswordHidden = !isConfirmPasswordHidden;
+                                  isConfirmPasswordHidden =
+                                      !isConfirmPasswordHidden;
                                 });
                               },
                               icon: Icon(
@@ -231,7 +243,7 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             filled: true,
-                            fillColor: const Color.fromARGB(255, 0, 0, 0),
+                            fillColor: Colors.white,
                           ),
                           onChanged: (String? newValue) {
                             setState(() {
@@ -257,16 +269,24 @@ class _RegisteruserScreenState extends State<RegisteruserScreen> {
                                 child: ElevatedButton.icon(
                                   onPressed: _signup,
                                   style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
                                     backgroundColor: Colors.indigo,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.person_add, color: Colors.white),
+                                  icon: const Icon(
+                                    Icons.person_add,
+                                    color: Colors.white,
+                                  ),
                                   label: const Text(
                                     'Registrarse',
-                                    style: TextStyle(fontSize: 18, color: Colors.white),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),

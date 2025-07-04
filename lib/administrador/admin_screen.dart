@@ -58,6 +58,10 @@ class _AdminScreenState extends State<AdminScreen> {
           MaterialPageRoute(builder: (_) => const LoginScreen()),
         );
       }
+    } else if (value == 'usuario') {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Se seleccionó "usuario"')));
     } else if (value == 'agregar_nuevo_usuario') {
       Navigator.push(
         context,
@@ -84,7 +88,6 @@ class _AdminScreenState extends State<AdminScreen> {
         MaterialPageRoute(builder: (_) => const UserGeo()),
       );
     } else if (value == 'Seguir') {
-      // Ahora la opción "Seguir" abre la pantalla de seguimiento de ubicaciones
       Navigator.push(
         context,
         MaterialPageRoute(builder: (_) => const UserGeo()),
@@ -120,9 +123,11 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: const Text('Panel de Administración'),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
       ),
       drawer: Drawer(
         child: ListView(
@@ -142,19 +147,14 @@ class _AdminScreenState extends State<AdminScreen> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.info),
-              title: const Text('menu'),
-              onTap: () => _handleDrawerSelection('menu'),
+              leading: const Icon(Icons.person_add),
+              title: const Text('Agregar nuevo usuario'),
+              onTap: () => _handleDrawerSelection('agregar_nuevo_usuario'),
             ),
             ListTile(
               leading: const Icon(Icons.event),
               title: const Text('Agendar'),
               onTap: () => _handleDrawerSelection('agendar'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Agregar nuevo usuario'),
-              onTap: () => _handleDrawerSelection('agregar_nuevo_usuario'),
             ),
             ListTile(
               leading: const Icon(Icons.history),
@@ -184,42 +184,80 @@ class _AdminScreenState extends State<AdminScreen> {
         width: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Colors.white, Color(0xFFE3E6F3)],
+            colors: [
+              Color.fromARGB(255, 29, 77, 235),
+              Color.fromARGB(255, 0, 0, 0),
+            ],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
         ),
         child: Center(
           child: Card(
-            elevation: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            elevation: 12,
+            margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(24),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 40),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.admin_panel_settings,
-                    size: 64,
-                    color: Colors.indigo,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.indigo.withAlpha(220),
+                          Colors.blue.withAlpha(180),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(16),
+                    child: const Icon(
+                      Icons.admin_panel_settings,
+                      size: 64,
+                      color: Colors.white,
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   const Text(
                     '¡Bienvenido, Administrador!',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 26,
                       fontWeight: FontWeight.bold,
                       color: Colors.indigo,
+                      letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   const Text(
                     'Gestiona clientes, agenda y más desde este panel.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                    style: TextStyle(
+                      fontSize: 17,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Divider(
+                    color: Colors.indigo.withAlpha(80),
+                    thickness: 1.2,
+                    indent: 30,
+                    endIndent: 30,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    userEmail,
+                    style: const TextStyle(
+                      color: Colors.indigo,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
