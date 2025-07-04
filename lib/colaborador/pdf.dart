@@ -25,9 +25,17 @@ class HojaServicioData {
   final TextEditingController descripcionTrabajoRealizadoController =
       TextEditingController();
 
-  final List<FotoDescripcionItem> fotosMantenimientoInicio = [];
-  final List<FotoDescripcionItem> fotosMantenimientoProceso = [];
-  final List<FotoDescripcionItem> fotosMantenimientoFin = [];
+  // Cambios aquí: ahora son listas de imágenes y un solo controlador de descripción por sección
+  final List<Uint8List> fotosMantenimientoInicio = [];
+  final List<Uint8List> fotosMantenimientoProceso = [];
+  final List<Uint8List> fotosMantenimientoFin = [];
+  final TextEditingController descripcionInicioController =
+      TextEditingController();
+  final TextEditingController descripcionProcesoController =
+      TextEditingController();
+  final TextEditingController descripcionFinController =
+      TextEditingController();
+
   final List<Uint8List> imagenesEvaporadores = [];
 
   Uint8List? firmaTecnico;
@@ -60,15 +68,9 @@ class HojaServicioData {
     firmaRecibeController.dispose();
     nombreTecnicoDialogController.dispose();
     nombreRecibeDialogController.dispose();
-    for (final f in fotosMantenimientoInicio) {
-      f.descripcionController.dispose();
-    }
-    for (final f in fotosMantenimientoProceso) {
-      f.descripcionController.dispose();
-    }
-    for (final f in fotosMantenimientoFin) {
-      f.descripcionController.dispose();
-    }
+    descripcionInicioController.dispose();
+    descripcionProcesoController.dispose();
+    descripcionFinController.dispose();
   }
 
   void clear() {
@@ -87,18 +89,12 @@ class HojaServicioData {
     firmaRecibeController.clear();
     nombreTecnicoDialogController.clear();
     nombreRecibeDialogController.clear();
-    for (final f in fotosMantenimientoInicio) {
-      f.descripcionController.clear();
-    }
-    for (final f in fotosMantenimientoProceso) {
-      f.descripcionController.clear();
-    }
-    for (final f in fotosMantenimientoFin) {
-      f.descripcionController.clear();
-    }
     fotosMantenimientoInicio.clear();
     fotosMantenimientoProceso.clear();
     fotosMantenimientoFin.clear();
+    descripcionInicioController.clear();
+    descripcionProcesoController.clear();
+    descripcionFinController.clear();
     imagenesEvaporadores.clear();
   }
 
@@ -110,30 +106,12 @@ class HojaServicioData {
     'serieEvaporador': serieEvaporadorController.text,
     'capacidadEvaporador': capacidadEvaporadorController.text,
     'descripcionTrabajoRealizado': descripcionTrabajoRealizadoController.text,
-    'fotosInicio': fotosMantenimientoInicio
-        .map(
-          (f) => {
-            'bytes': f.imageBytes,
-            'descripcion': f.descripcionController.text,
-          },
-        )
-        .toList(),
-    'fotosProceso': fotosMantenimientoProceso
-        .map(
-          (f) => {
-            'bytes': f.imageBytes,
-            'descripcion': f.descripcionController.text,
-          },
-        )
-        .toList(),
-    'fotosFin': fotosMantenimientoFin
-        .map(
-          (f) => {
-            'bytes': f.imageBytes,
-            'descripcion': f.descripcionController.text,
-          },
-        )
-        .toList(),
+    'fotosInicio': fotosMantenimientoInicio,
+    'descripcionInicio': descripcionInicioController.text,
+    'fotosProceso': fotosMantenimientoProceso,
+    'descripcionProceso': descripcionProcesoController.text,
+    'fotosFin': fotosMantenimientoFin,
+    'descripcionFin': descripcionFinController.text,
     'imagenesEvaporadores': imagenesEvaporadores,
     'firmaTecnico': firmaTecnico,
     'nombreTecnico': nombreTecnico,
@@ -280,34 +258,33 @@ class _FormularioPDFState extends State<FormularioPDF> {
                   // Imágenes de evaporadores
                   _imagenesEvaporadoresWidget(hoja),
                   const SizedBox(height: 8),
-                  // Fotos inicio/proceso/fin
-                  FotoDescripcionLista(
-                    encabezadoFoto: 'Foto inicio',
-                    encabezadoDescripcion: 'Descripción',
-                    items: hoja.fotosMantenimientoInicio,
-                    onAdd: (item) =>
-                        setState(() => hoja.fotosMantenimientoInicio.add(item)),
+                  // Fotos inicio/proceso/fin (nuevo widget)
+                  FotosFilaDescripcion(
+                    titulo: 'Fotos de inicio',
+                    fotos: hoja.fotosMantenimientoInicio,
+                    descripcionController: hoja.descripcionInicioController,
+                    onAdd: (img) =>
+                        setState(() => hoja.fotosMantenimientoInicio.add(img)),
                     onRemove: (idx) => setState(
                       () => hoja.fotosMantenimientoInicio.removeAt(idx),
                     ),
                   ),
-                  FotoDescripcionLista(
-                    encabezadoFoto: 'Foto proceso',
-                    encabezadoDescripcion: 'Descripción',
-                    items: hoja.fotosMantenimientoProceso,
-                    onAdd: (item) => setState(
-                      () => hoja.fotosMantenimientoProceso.add(item),
-                    ),
+                  FotosFilaDescripcion(
+                    titulo: 'Fotos de proceso',
+                    fotos: hoja.fotosMantenimientoProceso,
+                    descripcionController: hoja.descripcionProcesoController,
+                    onAdd: (img) =>
+                        setState(() => hoja.fotosMantenimientoProceso.add(img)),
                     onRemove: (idx) => setState(
                       () => hoja.fotosMantenimientoProceso.removeAt(idx),
                     ),
                   ),
-                  FotoDescripcionLista(
-                    encabezadoFoto: 'Foto fin',
-                    encabezadoDescripcion: 'Descripción',
-                    items: hoja.fotosMantenimientoFin,
-                    onAdd: (item) =>
-                        setState(() => hoja.fotosMantenimientoFin.add(item)),
+                  FotosFilaDescripcion(
+                    titulo: 'Fotos de fin',
+                    fotos: hoja.fotosMantenimientoFin,
+                    descripcionController: hoja.descripcionFinController,
+                    onAdd: (img) =>
+                        setState(() => hoja.fotosMantenimientoFin.add(img)),
                     onRemove: (idx) => setState(
                       () => hoja.fotosMantenimientoFin.removeAt(idx),
                     ),
@@ -462,7 +439,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
         if (firma != null)
           Column(
             children: [
-              Image.memory(firma, height: 150),
+              Image.memory(firma, height: 100),
               if (nombre != null) Text(nombre),
               TextButton.icon(
                 icon: const Icon(Icons.delete, color: Colors.red),
@@ -783,39 +760,34 @@ class _FormularioPDFState extends State<FormularioPDF> {
   }
 }
 
-// Widget para lista de fotos y descripciones dinámicas
-class FotoDescripcionLista extends StatefulWidget {
-  final String encabezadoFoto;
-  final String encabezadoDescripcion;
-  final List<FotoDescripcionItem> items;
-  final void Function(FotoDescripcionItem) onAdd;
+// Widget para lista de fotos en fila y una sola descripción
+class FotosFilaDescripcion extends StatefulWidget {
+  final String titulo;
+  final List<Uint8List> fotos;
+  final TextEditingController descripcionController;
+  final void Function(Uint8List) onAdd;
   final void Function(int) onRemove;
 
-  const FotoDescripcionLista({
+  const FotosFilaDescripcion({
     super.key,
-    required this.encabezadoFoto,
-    required this.encabezadoDescripcion,
-    required this.items,
+    required this.titulo,
+    required this.fotos,
+    required this.descripcionController,
     required this.onAdd,
     required this.onRemove,
   });
 
   @override
-  State<FotoDescripcionLista> createState() => _FotoDescripcionListaState();
+  State<FotosFilaDescripcion> createState() => _FotosFilaDescripcionState();
 }
 
-class _FotoDescripcionListaState extends State<FotoDescripcionLista> {
+class _FotosFilaDescripcionState extends State<FotosFilaDescripcion> {
   Future<void> _agregarFoto() async {
     final picker = ImagePicker();
     final XFile? picked = await picker.pickImage(source: ImageSource.camera);
     if (picked != null) {
       final bytes = await picked.readAsBytes();
-      widget.onAdd(
-        FotoDescripcionItem(
-          imageBytes: bytes,
-          descripcionController: TextEditingController(),
-        ),
-      );
+      widget.onAdd(bytes);
       setState(() {});
     }
   }
@@ -823,84 +795,70 @@ class _FotoDescripcionListaState extends State<FotoDescripcionLista> {
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Text(
+          widget.titulo,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(
-              child: Text(
-                widget.encabezadoFoto,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            Expanded(
-              child: Text(
-                widget.encabezadoDescripcion,
-                style: const TextStyle(fontWeight: FontWeight.w500),
-                textAlign: TextAlign.center,
+            ...widget.fotos.asMap().entries.map((entry) {
+              final idx = entry.key;
+              final imgBytes = entry.value;
+              return Stack(
+                alignment: Alignment.topRight,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.memory(
+                      imgBytes,
+                      width: 90,
+                      height: 90,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red, size: 20),
+                    onPressed: () {
+                      widget.onRemove(idx);
+                      setState(() {});
+                    },
+                  ),
+                ],
+              );
+            }),
+            GestureDetector(
+              onTap: _agregarFoto,
+              child: Container(
+                width: 90,
+                height: 90,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey),
+                ),
+                child: const Icon(
+                  Icons.add_a_photo,
+                  size: 32,
+                  color: Colors.grey,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.add_a_photo),
-            label: const Text('Agregar foto'),
-            onPressed: _agregarFoto,
-          ),
+        TextField(
+          controller: widget.descripcionController,
+          decoration: const InputDecoration(labelText: 'Descripción'),
+          maxLines: 2,
         ),
-        const SizedBox(height: 12),
-        if (widget.items.isEmpty) const Text('No hay fotos agregadas.'),
-        ...widget.items.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final item = entry.value;
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    item.imageBytes,
-                    width: 90,
-                    height: 90,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: item.descripcionController,
-                    decoration: const InputDecoration(labelText: 'Descripción'),
-                    maxLines: 3,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => widget.onRemove(idx),
-                  tooltip: 'Eliminar foto',
-                ),
-              ],
-            ),
-          );
-        }),
       ],
     );
   }
-}
-
-class FotoDescripcionItem {
-  final Uint8List imageBytes;
-  final TextEditingController descripcionController;
-
-  FotoDescripcionItem({
-    required this.imageBytes,
-    required this.descripcionController,
-  });
 }
 
 // Generador de PDF multipágina
@@ -916,30 +874,43 @@ class PdfGenerator {
   }) async {
     final pdf = pw.Document();
 
-    pw.Widget buildFotoDescripcion(List fotos, String titulo) {
+    // Fotos en fila y una sola descripción por sección
+    pw.Widget buildFotoFila(List fotos, String descripcion, String titulo) {
+      if (fotos.isEmpty) {
+        return pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text(
+              titulo,
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Text('No hay fotos agregadas.'),
+            pw.SizedBox(height: 8),
+            if (descripcion.isNotEmpty)
+              pw.Text(descripcion, style: pw.TextStyle(fontSize: 10)),
+          ],
+        );
+      }
       return pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Text(titulo, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
           pw.SizedBox(height: 4),
-          ...fotos.map<pw.Widget>(
-            (foto) => pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                if (foto['bytes'] != null)
-                  pw.Container(
-                    width: 150,
-                    height: 150,
-                    child: pw.Image(
-                      pw.MemoryImage(foto['bytes']),
-                      fit: pw.BoxFit.cover,
-                    ),
-                  ),
-                pw.SizedBox(width: 8),
-                pw.Expanded(child: pw.Text(foto['descripcion'] ?? '')),
-              ],
-            ),
+          pw.Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: fotos.map<pw.Widget>((imgBytes) {
+              return pw.Container(
+                width: 90,
+                height: 90,
+                child: pw.Image(pw.MemoryImage(imgBytes), fit: pw.BoxFit.cover),
+              );
+            }).toList(),
           ),
+          pw.SizedBox(height: 4),
+          if (descripcion.isNotEmpty)
+            pw.Text(descripcion, style: pw.TextStyle(fontSize: 10)),
           pw.SizedBox(height: 8),
         ],
       );
@@ -953,8 +924,8 @@ class PdfGenerator {
         children: imagenes
             .map<pw.Widget>(
               (imgBytes) => pw.Container(
-                width: 150,
-                height: 150,
+                width: 90,
+                height: 90,
                 child: pw.Image(pw.MemoryImage(imgBytes), fit: pw.BoxFit.cover),
               ),
             )
@@ -962,12 +933,11 @@ class PdfGenerator {
       );
     }
 
-    // Cada hoja será una página en el PDF
     for (final hoja in hojas) {
       pdf.addPage(
         pw.MultiPage(
           build: (context) => [
-            // Encabezado con logo y datos empresariales
+            // Encabezado con logo y datos empresariales (NO MODIFICADO)
             pw.Row(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
@@ -1094,18 +1064,24 @@ class PdfGenerator {
             buildImagenesEvaporadores(hoja['imagenesEvaporadores'] ?? []),
             pw.SizedBox(height: 8),
 
-            buildFotoDescripcion(
-              hoja['fotosInicio'] ?? [],
+            buildFotoFila(
+              (hoja['fotosInicio'] ?? []) as List,
+              hoja['descripcionInicio'] ?? '',
               'Fotos de inicio del servicio',
             ),
-            buildFotoDescripcion(
-              hoja['fotosProceso'] ?? [],
+            pw.SizedBox(height: 20),
+            buildFotoFila(
+              (hoja['fotosProceso'] ?? []) as List,
+              hoja['descripcionProceso'] ?? '',
               'Fotos de proceso del servicio',
             ),
-            buildFotoDescripcion(
-              hoja['fotosFin'] ?? [],
+            pw.SizedBox(height: 20),
+            buildFotoFila(
+              (hoja['fotosFin'] ?? []) as List,
+              hoja['descripcionFin'] ?? '',
               'Fotos de fin del servicio',
             ),
+            pw.SizedBox(height: 20),
 
             pw.Text(
               'Descripción del trabajo realizado',
@@ -1126,7 +1102,7 @@ class PdfGenerator {
                       if (hoja['firmaTecnico'] != null)
                         pw.Image(
                           pw.MemoryImage(hoja['firmaTecnico']),
-                          height: 150,
+                          height: 100,
                         ),
                       if (hoja['nombreTecnico'] != null)
                         pw.Text(hoja['nombreTecnico']),
@@ -1143,7 +1119,7 @@ class PdfGenerator {
                       if (hoja['firmaRecibe'] != null)
                         pw.Image(
                           pw.MemoryImage(hoja['firmaRecibe']),
-                          height: 150,
+                          height: 100,
                         ),
                       if (hoja['nombreRecibe'] != null)
                         pw.Text(hoja['nombreRecibe']),

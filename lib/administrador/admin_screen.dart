@@ -130,54 +130,102 @@ class _AdminScreenState extends State<AdminScreen> {
         elevation: 0,
       ),
       drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Colors.indigo),
-              accountName: const Text('Administrador'),
-              accountEmail: Text(userEmail),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(
-                  Icons.admin_panel_settings,
-                  color: Colors.indigo,
-                  size: 40,
+        child: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Color.fromARGB(255, 29, 77, 235),
+                Color.fromARGB(255, 0, 0, 0),
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              Container(
+                padding: const EdgeInsets.only(top: 40, bottom: 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Color.fromARGB(255, 29, 77, 235),
+                      Color.fromARGB(255, 0, 0, 0),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 44,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.indigo,
+                        size: 54,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Administrador',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      userEmail,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Agregar nuevo usuario'),
-              onTap: () => _handleDrawerSelection('agregar_nuevo_usuario'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.event),
-              title: const Text('Agendar'),
-              onTap: () => _handleDrawerSelection('agendar'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text('Historial de Actividades'),
-              onTap: () => _handleDrawerSelection('historial'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.calendar_month),
-              title: const Text('Calendario'),
-              onTap: () => _handleDrawerSelection('calendario'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.spatial_tracking),
-              title: const Text('Seguir'),
-              onTap: () => _handleDrawerSelection('Seguir'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.exit_to_app, color: Colors.red),
-              title: const Text('Salir', style: TextStyle(color: Colors.red)),
-              onTap: () => _handleDrawerSelection('salir'),
-            ),
-          ],
+              const Divider(color: Colors.white24, thickness: 1, height: 0),
+              _drawerItem(
+                icon: Icons.person_add,
+                text: 'Agregar nuevo usuario',
+                onTap: () => _handleDrawerSelection('agregar_nuevo_usuario'),
+              ),
+              _drawerItem(
+                icon: Icons.event,
+                text: 'Agendar',
+                onTap: () => _handleDrawerSelection('agendar'),
+              ),
+              _drawerItem(
+                icon: Icons.history,
+                text: 'Historial de Actividades',
+                onTap: () => _handleDrawerSelection('historial'),
+              ),
+              _drawerItem(
+                icon: Icons.calendar_month,
+                text: 'Calendario',
+                onTap: () => _handleDrawerSelection('calendario'),
+              ),
+              _drawerItem(
+                icon: Icons.spatial_tracking,
+                text: 'Seguir',
+                onTap: () => _handleDrawerSelection('Seguir'),
+              ),
+              const SizedBox(height: 12),
+              const Divider(color: Colors.white24, thickness: 1),
+              _drawerItem(
+                icon: Icons.exit_to_app,
+                text: 'Salir',
+                iconColor: Colors.red,
+                textColor: Colors.red,
+                onTap: () => _handleDrawerSelection('salir'),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
       body: Container(
@@ -265,6 +313,30 @@ class _AdminScreenState extends State<AdminScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _drawerItem({
+    required IconData icon,
+    required String text,
+    Color? iconColor,
+    Color? textColor,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Icon(icon, color: iconColor ?? Colors.white, size: 28),
+      title: Text(
+        text,
+        style: TextStyle(
+          color: textColor ?? Colors.white,
+          fontWeight: FontWeight.w500,
+          fontSize: 16,
+        ),
+      ),
+      hoverColor: Colors.white12,
+      onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 2),
     );
   }
 }
