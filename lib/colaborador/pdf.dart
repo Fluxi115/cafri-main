@@ -395,7 +395,7 @@ class _FormularioPDFState extends State<FormularioPDF> {
               onTap: () async {
                 final picker = ImagePicker();
                 final XFile? picked = await picker.pickImage(
-                  source: ImageSource.camera,
+                  source: ImageSource.gallery, // CAMBIO: galería
                 );
                 if (picked != null) {
                   final bytes = await picked.readAsBytes();
@@ -730,8 +730,11 @@ class _FormularioPDFState extends State<FormularioPDF> {
 
                   final hojasList = hojas.map((h) => h.toMap()).toList();
 
+                  // --- CAMBIO CLAVE: Guarda el folio actual en una variable local ---
+                  final folioParaPDF = folioActual!;
+
                   final pdfBytes = await PdfGenerator.generatePdf(
-                    folio: folioActual!,
+                    folio: folioParaPDF,
                     nombreCliente: campoNombreCliente.text,
                     hablarCon: hablarcon.text,
                     identificacion: identificacion.text,
@@ -740,15 +743,16 @@ class _FormularioPDFState extends State<FormularioPDF> {
                     logoBytes: logoUint8List,
                   );
 
-                  await FolioService.updateFolio(folioActual!);
+                  await FolioService.updateFolio(folioParaPDF);
                   setState(() {
-                    folioActual = folioActual! + 1;
+                    folioActual = folioParaPDF + 1;
                     _limpiarFormulario();
                   });
 
                   await Printing.layoutPdf(
                     onLayout: (format) async => pdfBytes,
-                    name: 'Tarea(${folioActual! - 1}).pdf',
+                    name:
+                        'Tarea($folioParaPDF).pdf', // Usa el folio correcto aquí
                   );
                 },
               ),
@@ -784,7 +788,9 @@ class FotosFilaDescripcion extends StatefulWidget {
 class _FotosFilaDescripcionState extends State<FotosFilaDescripcion> {
   Future<void> _agregarFoto() async {
     final picker = ImagePicker();
-    final XFile? picked = await picker.pickImage(source: ImageSource.camera);
+    final XFile? picked = await picker.pickImage(
+      source: ImageSource.gallery,
+    ); // CAMBIO: galería
     if (picked != null) {
       final bytes = await picked.readAsBytes();
       widget.onAdd(bytes);

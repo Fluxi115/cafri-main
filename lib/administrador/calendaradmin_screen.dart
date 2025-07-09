@@ -144,340 +144,366 @@ class _CalendarPageState extends State<CalendarPage> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setStateDialog) => Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: StatefulBuilder(
+          builder: (context, setStateDialog) => Dialog(
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFE3E6F3), Colors.white],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE3E6F3), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        docId == null ? Icons.add_circle : Icons.edit,
-                        color: Colors.indigo,
-                        size: 28,
+                      Row(
+                        children: [
+                          Icon(
+                            docId == null ? Icons.add_circle : Icons.edit,
+                            color: Colors.indigo,
+                            size: 28,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            docId == null
+                                ? 'Nueva actividad'
+                                : 'Editar actividad',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        docId == null ? 'Nueva actividad' : 'Editar actividad',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(height: 18),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.calendar_today,
                           color: Colors.indigo,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.calendar_today,
-                      color: Colors.indigo,
-                    ),
-                    title: Text(
-                      _selectedDate == null
-                          ? 'Selecciona una fecha'
-                          : DateFormat('dd/MM/yyyy').format(_selectedDate!),
-                    ),
-                    onTap: () async {
-                      final now = DateTime.now();
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate ?? now,
-                        firstDate: now,
-                        lastDate: DateTime(now.year + 2),
-                        builder: (context, child) {
-                          return Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: ColorScheme.light(
-                                primary: Colors.indigo,
-                                onPrimary: Colors.white,
-                                surface: Colors.white,
-                                onSurface: Colors.indigo[900]!,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        setStateDialog(() {
-                          _selectedDate = picked;
-                        });
-                      }
-                    },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    tileColor: Colors.grey[100],
-                  ),
-                  const SizedBox(height: 8),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.access_time,
-                      color: Colors.indigo,
-                    ),
-                    title: Text(
-                      _selectedTime == null
-                          ? 'Selecciona una hora'
-                          : _selectedTime!.format(context),
-                    ),
-                    onTap: () async {
-                      final picked = await showTimePicker(
-                        context: context,
-                        initialTime: _selectedTime ?? TimeOfDay.now(),
-                        builder: (context, child) {
-                          return Theme(
-                            data: ThemeData.light().copyWith(
-                              colorScheme: ColorScheme.light(
-                                primary: Colors.indigo,
-                                onPrimary: Colors.white,
-                                surface: Colors.white,
-                                onSurface: Colors.indigo[900]!,
-                              ),
-                            ),
-                            child: child!,
-                          );
-                        },
-                      );
-                      if (picked != null) {
-                        setStateDialog(() {
-                          _selectedTime = picked;
-                        });
-                      }
-                    },
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    tileColor: Colors.grey[100],
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedTipo,
-                    decoration: InputDecoration(
-                      labelText: 'Tipo de trabajo',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                    ),
-                    onChanged: (value) {
-                      setStateDialog(() {
-                        _selectedTipo = value!;
-                      });
-                    },
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'levantamiento',
-                        child: Text('Levantamiento'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'mantenimiento',
-                        child: Text('Mantenimiento'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'instalacion',
-                        child: Text('Instalación'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _descripcionController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Descripción',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  // Campo de dirección manual
-                  TextField(
-                    controller: _direccionController,
-                    decoration: InputDecoration(
-                      labelText: 'Dirección (opcional)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.search, color: Colors.indigo),
-                        tooltip: 'Buscar dirección',
-                        onPressed: () async {
-                          if (_direccionController.text.trim().isEmpty) return;
-                          try {
-                            List<Location> locations =
-                                await locationFromAddress(
-                                  _direccionController.text.trim(),
-                                );
-                            if (locations.isNotEmpty) {
-                              final lat = locations.first.latitude;
-                              final lng = locations.first.longitude;
-                              setStateDialog(() {
-                                _ubicacionLatLng = latlng.LatLng(lat, lng);
-                                _ubicacionUrl =
-                                    'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-                                _direccionManual = _direccionController.text
-                                    .trim();
-                              });
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Dirección encontrada y seleccionada',
+                        title: Text(
+                          _selectedDate == null
+                              ? 'Selecciona una fecha'
+                              : DateFormat('dd/MM/yyyy').format(_selectedDate!),
+                        ),
+                        onTap: () async {
+                          final now = DateTime.now();
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDate ?? now,
+                            firstDate: now,
+                            lastDate: DateTime(now.year + 2),
+                            builder: (context, child) {
+                              return Theme(
+                                data: ThemeData.light().copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: Colors.indigo,
+                                    onPrimary: Colors.white,
+                                    surface: Colors.white,
+                                    onSurface: Colors.indigo[900]!,
                                   ),
                                 ),
+                                child: child!,
                               );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('No se encontró la dirección'),
-                                ),
-                              );
-                            }
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error al buscar dirección: $e'),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                    onChanged: (value) {
-                      _direccionManual = value;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedColaborador,
-                    decoration: InputDecoration(
-                      labelText: 'Colaborador',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                    ),
-                    onChanged: (value) {
-                      setStateDialog(() {
-                        _selectedColaborador = value;
-                      });
-                    },
-                    items: colaboradores
-                        .map<DropdownMenuItem<String>>(
-                          (col) => DropdownMenuItem<String>(
-                            value: col['email'],
-                            child: Text('${col['name']} (${col['email']})'),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ubicacionLatLng == null
-                            ? const Text(
-                                'Sin ubicación seleccionada',
-                                style: TextStyle(fontSize: 16),
-                              )
-                            : Text(
-                                'Ubicación: ${_ubicacionLatLng!.latitude.toStringAsFixed(5)}, ${_ubicacionLatLng!.longitude.toStringAsFixed(5)}',
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.location_on, color: Colors.red),
-                        onPressed: () async {
-                          final result = await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LocationPicker(),
-                            ),
+                            },
                           );
-                          if (result != null && result is latlng.LatLng) {
+                          if (picked != null) {
                             setStateDialog(() {
-                              _ubicacionLatLng = result;
-                              _ubicacionUrl =
-                                  'https://www.google.com/maps/search/?api=1&query=${result.latitude},${result.longitude}';
-                              _direccionManual = '';
-                              _direccionController.clear();
+                              _selectedDate = picked;
                             });
                           }
                         },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tileColor: Colors.grey[100],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (docId != null)
-                        TextButton.icon(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          label: const Text(
-                            'Eliminar',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                          onPressed: () async {
-                            await FirebaseFirestore.instance
-                                .collection('actividades')
-                                .doc(docId)
-                                .delete();
-                            Navigator.pop(context);
-                            setState(() {});
-                          },
+                      const SizedBox(height: 8),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.access_time,
+                          color: Colors.indigo,
                         ),
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        icon: Icon(
-                          docId == null ? Icons.save : Icons.edit,
-                          color: Colors.white,
+                        title: Text(
+                          _selectedTime == null
+                              ? 'Selecciona una hora'
+                              : _selectedTime!.format(context),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
-                          ),
-                        ),
-                        onPressed: () async {
-                          await _guardarActividad(docId: docId);
-                          Navigator.pop(context);
-                          setState(() {});
+                        onTap: () async {
+                          final picked = await showTimePicker(
+                            context: context,
+                            initialTime: _selectedTime ?? TimeOfDay.now(),
+                            builder: (context, child) {
+                              return Theme(
+                                data: ThemeData.light().copyWith(
+                                  colorScheme: ColorScheme.light(
+                                    primary: Colors.indigo,
+                                    onPrimary: Colors.white,
+                                    surface: Colors.white,
+                                    onSurface: Colors.indigo[900]!,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              _selectedTime = picked;
+                            });
+                          }
                         },
-                        label: Text(docId == null ? 'Guardar' : 'Actualizar'),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        tileColor: Colors.grey[100],
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedTipo,
+                        decoration: InputDecoration(
+                          labelText: 'Tipo de trabajo',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            _selectedTipo = value!;
+                          });
+                        },
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'levantamiento',
+                            child: Text('Levantamiento'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'mantenimiento',
+                            child: Text('Mantenimiento'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'instalacion',
+                            child: Text('Instalación'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _descripcionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          labelText: 'Descripción',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _direccionController,
+                        decoration: InputDecoration(
+                          labelText: 'Dirección (opcional)',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          suffixIcon: IconButton(
+                            icon: const Icon(
+                              Icons.search,
+                              color: Colors.indigo,
+                            ),
+                            tooltip: 'Buscar dirección',
+                            onPressed: () async {
+                              if (_direccionController.text.trim().isEmpty) {
+                                return;
+                              }
+                              try {
+                                List<Location> locations =
+                                    await locationFromAddress(
+                                      _direccionController.text.trim(),
+                                    );
+                                if (locations.isNotEmpty) {
+                                  final lat = locations.first.latitude;
+                                  final lng = locations.first.longitude;
+                                  setStateDialog(() {
+                                    _ubicacionLatLng = latlng.LatLng(lat, lng);
+                                    _ubicacionUrl =
+                                        'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+                                    _direccionManual = _direccionController.text
+                                        .trim();
+                                  });
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Dirección encontrada y seleccionada',
+                                      ),
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'No se encontró la dirección',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Error al buscar dirección: $e',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        onChanged: (value) {
+                          _direccionManual = value;
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _selectedColaborador,
+                        decoration: InputDecoration(
+                          labelText: 'Colaborador',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                        ),
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            _selectedColaborador = value;
+                          });
+                        },
+                        items: colaboradores
+                            .map<DropdownMenuItem<String>>(
+                              (col) => DropdownMenuItem<String>(
+                                value: col['email'],
+                                child: Text('${col['name']} (${col['email']})'),
+                              ),
+                            )
+                            .toList(),
+                        menuMaxHeight: MediaQuery.of(context).size.height * 0.4,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _ubicacionLatLng == null
+                                ? const Text(
+                                    'Sin ubicación seleccionada',
+                                    style: TextStyle(fontSize: 16),
+                                  )
+                                : Text(
+                                    'Ubicación: ${_ubicacionLatLng!.latitude.toStringAsFixed(5)}, ${_ubicacionLatLng!.longitude.toStringAsFixed(5)}',
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                          ),
+                          IconButton(
+                            icon: const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                            ),
+                            onPressed: () async {
+                              final result = await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const LocationPicker(),
+                                ),
+                              );
+                              if (result != null && result is latlng.LatLng) {
+                                setStateDialog(() {
+                                  _ubicacionLatLng = result;
+                                  _ubicacionUrl =
+                                      'https://www.google.com/maps/search/?api=1&query=${result.latitude},${result.longitude}';
+                                  _direccionManual = '';
+                                  _direccionController.clear();
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (docId != null)
+                            TextButton.icon(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              label: const Text(
+                                'Eliminar',
+                                style: TextStyle(color: Colors.red),
+                              ),
+                              onPressed: () async {
+                                await FirebaseFirestore.instance
+                                    .collection('actividades')
+                                    .doc(docId)
+                                    .delete();
+                                Navigator.pop(context);
+                                setState(() {});
+                              },
+                            ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancelar'),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              docId == null ? Icons.save : Icons.edit,
+                              color: Colors.white,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 12,
+                              ),
+                            ),
+                            onPressed: () async {
+                              await _guardarActividad(docId: docId);
+                              Navigator.pop(context);
+                              setState(() {});
+                            },
+                            label: Text(
+                              docId == null ? 'Guardar' : 'Actualizar',
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
