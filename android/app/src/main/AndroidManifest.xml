@@ -12,12 +12,6 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
-        <!-- Servicio necesario para rastreo en segundo plano -->
-        <service
-            android:name="com.almoullim.background_location.ForegroundService"
-            android:enabled="true"
-            android:exported="false" />
-
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -1,138 +1,99 @@
-/*import 'package:flutter/material.dart';
+import 'package:background_locator_2/background_locator.dart';
+import 'package:background_locator_2/settings/android_settings.dart';
+import 'package:background_locator_2/settings/ios_settings.dart';
+import 'package:background_locator_2/settings/locator_settings.dart';
+import 'package:background_locator_2/location_dto.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' as latlng;
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ColaboradorUbicacionRealtime extends StatefulWidget {
-  final String userId;
-  final String nombre;
+class UbicacionService {
+  static bool _isRunning = false;
+  static const String _prefsUserIdKey = 'ubicacion_user_id';
+  static const String _prefsNombreKey = 'ubicacion_nombre';
+  static const String _prefsAvatarUrlKey = 'ubicacion_avatar_url';
 
-  const ColaboradorUbicacionRealtime({
-    super.key,
-    required this.userId,
-    required this.nombre,
-  });
+  /// Inicia el envío de ubicación en segundo plano para el usuario dado.
+  static Future<void> start(
+    String userId, {
+    String? nombre,
+    String? avatarUrl,
+  }) async {
+    if (_isRunning) return;
+    _isRunning = true;
 
-  @override
-  State<ColaboradorUbicacionRealtime> createState() =>
-      _ColaboradorUbicacionRealtimeState();
-}
-
-class _ColaboradorUbicacionRealtimeState
-    extends State<ColaboradorUbicacionRealtime> {
-  Stream<Position>? _positionStream;
-  String _status = "Esperando ubicación...";
-  Position? _currentPosition;
-
-  @override
-  void initState() {
-    super.initState();
-    _initLocationStream();
-  }
-
-  Future<void> _initLocationStream() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() {
-        _status = "Activa el GPS";
-      });
-      return;
+    // Guarda los datos en SharedPreferences para acceso en el callback
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefsUserIdKey, userId);
+    if (nombre != null) {
+      await prefs.setString(_prefsNombreKey, nombre);
+    }
+    if (avatarUrl != null) {
+      await prefs.setString(_prefsAvatarUrlKey, avatarUrl);
     }
 
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() {
-          _status = "Permiso de ubicación denegado";
-        });
-        return;
-      }
-    }
-    if (permission == LocationPermission.deniedForever) {
-      setState(() {
-        _status = "Permiso de ubicación denegado permanentemente";
-      });
-      return;
-    }
+    await BackgroundLocator.initialize();
 
-    setState(() {
-      _status = "Enviando ubicación...";
-      _positionStream = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 10, // metros
+    BackgroundLocator.registerLocationUpdate(
+      _callback,
+      initCallback: _initCallback,
+      disposeCallback: _disposeCallback,
+      iosSettings: IOSSettings(
+        accuracy: LocationAccuracy.NAVIGATION,
+        distanceFilter: 10,
+      ),
+      autoStop: false,
+      androidSettings: AndroidSettings(
+        accuracy: LocationAccuracy.NAVIGATION,
+        interval: 30, // segundos entre actualizaciones
+        distanceFilter: 10,
+        androidNotificationSettings: AndroidNotificationSettings(
+          notificationChannelName: 'Ubicación en segundo plano',
+          notificationTitle: 'Enviando ubicación',
+          notificationMsg: 'Tu ubicación se está compartiendo en segundo plano',
+          notificationBigMsg:
+              'Tu ubicación se está compartiendo en segundo plano para la app.',
+          notificationIcon: '@mipmap/ic_launcher',
         ),
-      );
-    });
-
-    _positionStream!.listen((Position position) async {
-      setState(() {
-        _currentPosition = position;
-      });
-      await FirebaseFirestore.instance
-          .collection('ubicaciones')
-          .doc(widget.userId)
-          .set({
-            'lat': position.latitude,
-            'lng': position.longitude,
-            'nombre': widget.nombre,
-            'timestamp': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Mi ubicación')),
-      body: Column(
-        children: [
-          if (_currentPosition != null)
-            Expanded(
-              child: FlutterMap(
-                options: MapOptions(
-                  initialCenter: latlng.LatLng(
-                    _currentPosition!.latitude,
-                    _currentPosition!.longitude,
-                  ),
-                  initialZoom: 16,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    subdomains: const ['a', 'b', 'c'],
-                    userAgentPackageName: 'com.example.app',
-                  ),
-                  MarkerLayer(
-                    markers: [
-                      Marker(
-                        point: latlng.LatLng(
-                          _currentPosition!.latitude,
-                          _currentPosition!.longitude,
-                        ),
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        child: const Icon(
-                          Icons.person_pin_circle,
-                          color: Colors.blue,
-                          size: 40,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            )
-          else
-            const Expanded(child: Center(child: CircularProgressIndicator())),
-          Padding(padding: const EdgeInsets.all(16.0), child: Text(_status)),
-        ],
       ),
     );
   }
+
+  /// Detiene el envío de ubicación.
+  static Future<void> stop() async {
+    _isRunning = false;
+    await BackgroundLocator.unRegisterLocationUpdate();
+    // Limpia los datos guardados
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefsUserIdKey);
+    await prefs.remove(_prefsNombreKey);
+    await prefs.remove(_prefsAvatarUrlKey);
+  }
+
+  // --- Callbacks para background_locator_2 ---
+
+  static void _initCallback(Map<dynamic, dynamic> params) {
+    // Se llama cuando inicia el servicio
+  }
+
+  static void _disposeCallback() {
+    // Se llama cuando se detiene el servicio
+  }
+
+  static Future<void> _callback(LocationDto locationDto) async {
+    // Recupera los datos guardados en SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final String? userId = prefs.getString(_prefsUserIdKey);
+    final String? nombre = prefs.getString(_prefsNombreKey);
+    final String? avatarUrl = prefs.getString(_prefsAvatarUrlKey);
+
+    if (userId == null) return;
+
+    await FirebaseFirestore.instance.collection('ubicaciones').doc(userId).set({
+      'lat': locationDto.latitude,
+      'lng': locationDto.longitude,
+      'timestamp': FieldValue.serverTimestamp(),
+      if (nombre != null) 'nombre': nombre,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
+    }, SetOptions(merge: true));
+  }
 }
-*/
